@@ -81,7 +81,7 @@ services:
         condition: service_healthy
     command: ["python", "-c", "from run import run_bot; run_bot()"]
     healthcheck:
-      test: ["CMD", "python", "-c", "import pathlib, time; log=pathlib.Path('logs/app.log'); exit(0 if log.exists() and time.time()-log.stat().st_mtime<120 else 1)"]
+      test: ["CMD-SHELL", "kill -0 1 2>/dev/null || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 3

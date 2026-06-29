@@ -4,13 +4,13 @@
 
 BotHunter AI follows clean architecture with clear separation of concerns.
 
-**Текущая версия:** v0.4 — регистрация Telegram-каналов.
+**Текущая версия:** v1.0-beta — интегрированный production pipeline.
 
 ## Layers
 
 ```
 Presentation   →  api/, bot/
-Application    →  services/, schemas/
+Application    →  services/, schemas/, rules/, features/, risk/, ai/
 Domain         →  models/
 Infrastructure →  database/, repositories/, config/, ai/, utils/
 ```
@@ -21,8 +21,11 @@ Infrastructure →  database/, repositories/, config/, ai/, utils/
 |-------------|-----------------------------------------|
 | `api/`      | FastAPI routes and HTTP dependencies    |
 | `bot/`      | Aiogram handlers and bot lifecycle      |
-| `ai/`       | AI/ML integrations                      |
+| `ai/`       | AI Layer (`AIService`, providers)       |
 | `services/` | Business logic                          |
+| `rules/`    | Rule Engine (profile scoring)           |
+| `features/` | Feature extraction (`FeatureSet`)       |
+| `risk/`     | Risk Profile (`RiskProfileBuilder`)     |
 | `models/`   | SQLAlchemy ORM entities                 |
 | `repositories/` | Data access layer (Generic Repository) |
 | `schemas/`  | Pydantic request/response models        |
@@ -65,6 +68,49 @@ Infrastructure →  database/, repositories/, config/, ai/, utils/
 - `ChannelRegistrationService` проверяет канал и права бота через Telegram API.
 - Успешное подключение сохраняется в `telegram_channels`.
 - Ошибки сохраняются в `channel_connection_errors`.
+
+## Rule Engine (v0.5)
+
+- Слой `rules/` — детерминированная оценка профиля `TelegramUser`.
+- `BaseRule` + 9 правил + `RuleEngine`.
+- Вход: `FeatureSet` (не `TelegramUser`).
+- Возвращает `rule_score` и список `triggered_rules` (JSON).
+
+Подробности: [docs/rule_engine.md](rule_engine.md).
+
+## Feature Extraction (v0.7)
+
+- `FeatureExtractor.extract(user)` → `FeatureSet`.
+- Признаки Profile / Username / Name / System.
+- Rule Engine работает только с `FeatureSet`.
+
+Подробности: [docs/features.md](features.md).
+
+## Risk Profile (v0.8)
+
+- `RiskProfileBuilder.build(FeatureSet, RuleEngineResult)` → `RiskProfile`.
+- Поля: `risk_level`, `confidence`, `main_reason`, `signals`, `summary`.
+
+Подробности: [docs/risk_profile.md](risk_profile.md).
+
+## AI Layer (v0.9)
+
+- `AIService` — AI только для `MANUAL_REVIEW`.
+- `AIProvider` + `MockAIProvider` + `OpenAIProvider` (Structured Output).
+- `PromptBuilder` — prompt без персональных данных.
+- Retry, timeout, fallback, logging.
+
+Подробности: [docs/ai.md](ai.md).
+
+## Join Request Processing (v1.0-beta)
+
+- Handler `ChatJoinRequest` → `JoinRequestProcessingService`.
+- FeatureExtractor → RuleEngine → RiskProfileBuilder → DecisionEngine.
+- AI (`AIService`) только для `MANUAL_REVIEW`.
+- Финальное решение, `AIAnalysis`, approve/decline/pending.
+- Единые пороги через `get_decision_thresholds()` (YAML + env override).
+
+Подробности: [docs/join_request_processing.md](join_request_processing.md).
 
 ## Running locally
 

@@ -38,6 +38,11 @@ class Settings(BaseSettings):
     bot_token: str = ""
 
     openai_api_key: str = ""
+    openai_model: str = "gpt-4o-mini"
+    openai_timeout: float = 30.0
+
+    decision_approve_below: int = 30
+    decision_reject_from: int = 70
 
     @computed_field
     @property

@@ -1,5 +1,144 @@
 # BotHunter AI — Changelog
 
+## [1.0.0-beta] — 2026-06-29
+
+### Fixed (Integration Audit)
+
+- **Production pipeline:** `JoinRequestProcessingService` интегрирует `RiskProfileBuilder` + `AIService`.
+- **AI только для MANUAL_REVIEW:** APPROVED/REJECTED без вызова AI.
+- **Final decision:** из `AIAnalysisResult` при SUCCESS/FALLBACK; `AI_UNAVAILABLE` → MANUAL_REVIEW.
+- **AIAnalysis:** `ai_score`, `final_score` (среднее rule+ai), расширенный `explanation` JSON.
+- **Единые пороги:** `get_decision_thresholds()` — YAML + env override; `RiskProfileBuilder` использует те же пороги.
+- **Error handling:** try/except + rollback в join handler; Telegram API errors не роняют обработку.
+- **Docker:** bot healthcheck через `kill -0 1` (живой процесс).
+- **E2E tests:** полный pipeline LOW / MEDIUM / HIGH.
+- **Docs:** architecture, join_request_processing, ai, README, pyproject version.
+
+---
+
+## [0.9.0] — 2026-06-29
+
+### Added
+
+- AI Layer: `app/ai/`.
+- `AIProvider` — интерфейс провайдера AI.
+- `MockAIProvider` — детерминированный провайдер для тестов и fallback.
+- `OpenAIProvider` — OpenAI SDK + Structured Output (JSON).
+- `PromptBuilder` — prompt без персональных данных (Risk Level, Confidence, Signals, Summary).
+- `AIService` — AI только для `MANUAL_REVIEW`; retry (2), timeout, fallback, logging.
+- `AIAnalysisResult`, `AIServiceResult`, `AIServiceStatus` (`AI_UNAVAILABLE`).
+- Unit и integration tests для AI Layer.
+- Документация: `docs/ai.md` + Mermaid-диаграмма.
+- Зависимость: `openai==1.59.6`.
+- Настройки: `OPENAI_MODEL`, `OPENAI_TIMEOUT`.
+
+### Not included (by design)
+
+- Интеграция AI в `JoinRequestProcessingService`
+- Изменения Rule Engine, Feature Extraction, Decision Engine, Repository Layer
+
+---
+
+## [0.8.0] — 2026-06-29
+
+### Added
+
+- Risk Profile Engine: `app/risk/`.
+- `RiskProfileBuilder` — преобразование `FeatureSet` + `RuleEngineResult` → `RiskProfile`.
+- Dataclass `RiskProfile`: `risk_level`, `confidence`, `main_reason`, `signals`, `summary`.
+- Unit tests для LOW / MEDIUM / HIGH и комбинаций сигналов.
+- Документация: `docs/risk_profile.md` + Mermaid-диаграмма.
+
+### Not included (by design)
+
+- OpenAI
+- Изменения `RuleEngine`, `DecisionEngine`, `JoinRequest`
+
+---
+
+## [0.7.0] — 2026-06-29
+
+### Added
+
+- Feature Extraction Engine: `app/features/`.
+- `FeatureExtractor` + dataclass `FeatureSet`.
+- Признаки Profile, Username, Name, System.
+- Rule Engine переведён на работу только с `FeatureSet`.
+- Unit tests для каждого признака.
+- Документация: `docs/features.md`.
+
+### Changed
+
+- `JoinRequestProcessingService` вызывает `FeatureExtractor` перед `RuleEngine`.
+- `BaseRule.calculate()` принимает `FeatureSet` вместо `TelegramUser`.
+
+### Not included (by design)
+
+- OpenAI
+- Изменения `DecisionEngine`
+- Изменения модели `JoinRequest`
+
+---
+
+## [0.6.0] — 2026-06-29
+
+### Added
+
+- Обработчик `ChatJoinRequest` (Aiogram 3).
+- `JoinRequestProcessingService` — полный цикл обработки заявки.
+- `DecisionEngine` — APPROVED / MANUAL_REVIEW / REJECTED по `rule_score`.
+- Конфигурация порогов: `backend/config/decision_thresholds.yaml` + `.env`.
+- Автоматический approve/decline через Telegram API.
+- Сохранение `JoinRequest`, `AIAnalysis`, upsert `TelegramUser`.
+- Логирование обработки заявок.
+- Unit и integration tests.
+- Документация: `docs/join_request_processing.md`.
+
+### Decision thresholds
+
+- `rule_score < 30` → APPROVED
+- `30–69` → MANUAL_REVIEW
+- `≥ 70` → REJECTED
+
+### Not included (by design)
+
+- OpenAI
+- Dashboard
+
+---
+
+## [0.5.0] — 2026-06-29
+
+### Added
+
+- Rule Engine: `app/rules/`.
+- `BaseRule` — интерфейс правил (`calculate`, `description`, `weight`).
+- 9 правил оценки профиля `TelegramUser`.
+- `RuleEngine` — агрегация score и JSON-результата.
+- Unit tests для каждого правила и движка.
+- Документация: `docs/rule_engine.md` + Mermaid-диаграмма.
+
+### Rules
+
+- `NoPhotoRule` (+20)
+- `NoUsernameRule` (+10)
+- `UsernameManyDigitsRule` (+15)
+- `UsernameConsecutiveDigitsRule` (+20)
+- `SuspiciousNameWordsRule` (+20)
+- `LongNameRule` (+10)
+- `TooManyEmojiRule` (+15)
+- `EmptyNameRule` (+30)
+- `UnknownLanguageRule` (+5)
+
+### Not included (by design)
+
+- OpenAI / AI
+- Decision logic (approve/reject)
+- Join Request processing
+- Dashboard
+
+---
+
 ## [0.4.0] — 2026-06-29
 
 ### Added

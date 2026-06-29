@@ -4,7 +4,7 @@ from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.utils.token import TokenValidationError, validate_token
 
-from app.bot.handlers import commands_router, connect_router
+from app.bot.handlers import commands_router, connect_router, join_request_router
 from app.bot.middlewares import IncomingMessageLoggingMiddleware
 from app.config import get_settings
 from app.utils.logging import get_logger
@@ -19,6 +19,7 @@ def create_dispatcher() -> Dispatcher:
     dp.message.middleware(IncomingMessageLoggingMiddleware())
     dp.include_router(commands_router)
     dp.include_router(connect_router)
+    dp.include_router(join_request_router)
     return dp
 
 
