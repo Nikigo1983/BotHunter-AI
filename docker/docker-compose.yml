@@ -1,0 +1,97 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: bothunter-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-bothunter}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bothunter}
+      POSTGRES_DB: ${POSTGRES_DB:-bothunter}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-bothunter} -d ${POSTGRES_DB:-bothunter}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: bothunter-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: bothunter-api
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    environment:
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
+      APP_HOST: 0.0.0.0
+      APP_PORT: 8000
+      APP_DEBUG: "false"
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: ["python", "run.py"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    volumes:
+      - ../backend:/app/backend
+      - api_logs:/app/backend/logs
+
+  bot:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: bothunter-bot
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    environment:
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: ["python", "-c", "from run import run_bot; run_bot()"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import pathlib, time; log=pathlib.Path('logs/app.log'); exit(0 if log.exists() and time.time()-log.stat().st_mtime<120 else 1)"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    volumes:
+      - ../backend:/app/backend
+      - bot_logs:/app/backend/logs
+
+volumes:
+  postgres_data:
+  redis_data:
+  api_logs:
+  bot_logs:

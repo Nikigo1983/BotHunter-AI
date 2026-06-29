@@ -1,0 +1,13 @@
+[project]
+name = "bothunter-ai"
+version = "0.1.0"
+description = "BotHunter AI — Telegram bot detection platform"
+requires-python = ">=3.12,<3.13"
+dependencies = []
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]

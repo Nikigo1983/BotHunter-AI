@@ -1,0 +1,21 @@
+# Web
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+
+# Bot
+aiogram==3.17.0
+
+# Database
+sqlalchemy[asyncio]==2.0.36
+asyncpg==0.30.0
+alembic==1.14.0
+
+# Redis
+redis[hiredis]==5.2.1
+
+# Config & validation
+pydantic==2.10.4
+pydantic-settings==2.7.0
+
+# Utils
+python-dotenv==1.0.1
