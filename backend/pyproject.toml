@@ -1,9 +1,14 @@
 [project]
 name = "bothunter-ai"
-version = "0.1.0"
+version = "0.3.0"
 description = "BotHunter AI — Telegram bot detection platform"
 requires-python = ">=3.12,<3.13"
 dependencies = []
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
 
 [tool.ruff]
 line-length = 100

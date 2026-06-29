@@ -8,9 +8,19 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from app.config import get_settings
 from app.database.base import Base
-
-# Import models here so Alembic can detect metadata changes.
-# from app.models import user  # noqa: F401
+from app.models import (  # noqa: F401
+    AIAnalysis,
+    AuditLog,
+    Blacklist,
+    ChannelConnectionError,
+    JoinRequest,
+    Reputation,
+    TelegramBot,
+    TelegramChannel,
+    TelegramUser,
+    User,
+    Whitelist,
+)
 
 config = context.config
 settings = get_settings()
