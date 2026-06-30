@@ -1,6 +1,6 @@
 [project]
 name = "bothunter-ai"
-version = "1.0.0b0"
+version = "1.2.0"
 description = "BotHunter AI — Telegram bot detection platform"
 requires-python = ">=3.12,<3.13"
 dependencies = []

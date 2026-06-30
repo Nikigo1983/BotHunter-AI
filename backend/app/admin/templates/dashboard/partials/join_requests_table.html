@@ -1,0 +1,60 @@
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+            <thead class="table-light">
+            <tr>
+                <th>Дата</th>
+                <th>Канал</th>
+                <th>Telegram ID</th>
+                <th>Username</th>
+                <th>Rule Score</th>
+                <th>AI Score</th>
+                <th>Final Score</th>
+                <th>Decision</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for item in join_requests.items %}
+            <tr>
+                <td>{{ item.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
+                <td>{{ item.channel_title }}</td>
+                <td>{{ item.telegram_id }}</td>
+                <td>{{ item.username or "—" }}
+                    {% if item.is_whitelisted %}<span class="badge text-bg-info ms-1">Whitelisted</span>{% endif %}
+                    {% if item.is_blacklisted %}<span class="badge text-bg-dark ms-1">Blacklisted</span>{% endif %}
+                </td>
+                <td>{{ item.rule_score if item.rule_score is not none else "—" }}</td>
+                <td>{{ item.ai_score if item.ai_score is not none else "—" }}</td>
+                <td>{{ item.final_score if item.final_score is not none else "—" }}</td>
+                <td>
+                    {% if item.decision %}
+                    <span class="badge text-bg-{{ decision_badge_class(item.decision.value) }}">{{ item.decision.value }}</span>
+                    {% else %}—{% endif %}
+                </td>
+                <td><span class="badge text-bg-{{ status_badge_class(item.status.value) }}">{{ item.status.value }}</span></td>
+                <td><a class="btn btn-sm btn-outline-primary" href="/admin/join-request/{{ item.id }}">Open</a></td>
+            </tr>
+            {% else %}
+            <tr><td colspan="10" class="text-center text-muted py-4">Заявок пока нет</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% if join_requests.total_pages > 1 %}
+<nav class="mt-3">
+    <ul class="pagination">
+        {% for p in range(1, join_requests.total_pages + 1) %}
+        <li class="page-item {% if p == join_requests.page %}active{% endif %}">
+            <a class="page-link"
+               hx-get="/admin/partials/join-requests?status={{ status_filter }}&search={{ search }}&page={{ p }}"
+               hx-target="#join-requests-table"
+               href="/admin?status={{ status_filter }}&search={{ search }}&page={{ p }}">{{ p }}</a>
+        </li>
+        {% endfor %}
+    </ul>
+</nav>
+{% endif %}

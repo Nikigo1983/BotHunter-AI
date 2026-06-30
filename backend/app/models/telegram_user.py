@@ -11,6 +11,7 @@ from app.models.mixins import TimestampMixin, UUIDPrimaryKeyMixin
 if TYPE_CHECKING:
     from app.models.blacklist import Blacklist
     from app.models.join_request import JoinRequest
+    from app.models.manual_review import ManualReview
     from app.models.reputation import Reputation
     from app.models.whitelist import Whitelist
 
@@ -45,6 +46,10 @@ class TelegramUser(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         cascade="all, delete-orphan",
     )
     whitelist_entries: Mapped[list[Whitelist]] = relationship(
+        back_populates="telegram_user",
+        cascade="all, delete-orphan",
+    )
+    manual_reviews: Mapped[list[ManualReview]] = relationship(
         back_populates="telegram_user",
         cascade="all, delete-orphan",
     )

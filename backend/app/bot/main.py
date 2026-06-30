@@ -1,11 +1,17 @@
 import asyncio
 
 from aiogram import Bot, Dispatcher
-from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.fsm.storage.base import BaseStorage
 from aiogram.utils.token import TokenValidationError, validate_token
 
-from app.bot.handlers import commands_router, connect_router, join_request_router
+from app.bot.handlers import (
+    commands_router,
+    connect_router,
+    debug_chatid_router,
+    join_request_router,
+)
 from app.bot.middlewares import IncomingMessageLoggingMiddleware
+from app.bot.storage import create_fsm_storage
 from app.config import get_settings
 from app.utils.logging import get_logger
 
@@ -14,11 +20,12 @@ logger = get_logger(__name__)
 PLACEHOLDER_TOKENS = frozenset({"", "your-telegram-bot-token"})
 
 
-def create_dispatcher() -> Dispatcher:
-    dp = Dispatcher(storage=MemoryStorage())
+def create_dispatcher(storage: BaseStorage) -> Dispatcher:
+    dp = Dispatcher(storage=storage)
     dp.message.middleware(IncomingMessageLoggingMiddleware())
     dp.include_router(commands_router)
     dp.include_router(connect_router)
+    dp.include_router(debug_chatid_router)
     dp.include_router(join_request_router)
     return dp
 
@@ -52,8 +59,11 @@ async def start_bot() -> None:
         return
 
     bot = create_bot()
-    dp = create_dispatcher()
+    storage = create_fsm_storage()
+    dp = create_dispatcher(storage)
 
-    logger.info("Starting Telegram bot polling")
-    await dp.start_polling(bot)
-
+    logger.info("Starting Telegram bot polling with Redis FSM storage")
+    try:
+        await dp.start_polling(bot)
+    finally:
+        await storage.close()

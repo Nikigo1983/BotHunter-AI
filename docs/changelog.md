@@ -1,5 +1,58 @@
 # BotHunter AI — Changelog
 
+## [1.2.0] — 2026-06-30
+
+### Added
+
+- Admin Actions: Approve, Reject, Whitelist, Blacklist (Web + REST API).
+- `AdminJoinRequestActionService` с Telegram API, audit log, feedback loop.
+- Таблицы: `manual_reviews`, `ai_feedbacks`.
+- Whitelist/blacklist short-circuit в `JoinRequestProcessingService`.
+- Dashboard UI: flash messages, disabled buttons, Manual Review History, AI Feedback.
+- Бейджи Whitelisted/Blacklisted на главной странице.
+- Unit + integration tests для admin actions и list-match pipeline.
+
+---
+
+## [1.1.0] — 2026-06-30
+
+### Added
+
+- Admin Dashboard MVP: `/admin` (Jinja2 + HTMX + Bootstrap 5).
+- REST API: `GET /api/v1/admin/join-requests`, `GET /api/v1/admin/join-requests/{id}`, `GET /api/v1/admin/statistics`.
+- `AdminDashboardService`, DTO, `AdminDashboardRepository` (read-only queries).
+- Фильтры, поиск, пагинация (25), карточки статистики.
+- Detail page: user, Feature Set, Rule Engine, Risk Profile, AI, History.
+- Unit + integration tests.
+- Документация: `docs/dashboard.md`.
+
+### Not included (by design)
+
+- Approve/Reject/Whitelist/Blacklist actions (заглушки)
+- OpenAI
+- React/Vue frontend
+
+---
+
+## [1.0.0-beta.2] — 2026-06-30
+
+### Changed
+
+- FSM бота: `MemoryStorage` → `RedisStorage` (состояния переживают перезапуск).
+- Factory: `app/bot/storage.py`, URL из `Settings.redis_url`.
+
+---
+
+## [1.0.0-beta.1] — 2026-06-30
+
+### Fixed
+
+- Регистрация канала через `/connect` больше не зависит от FSM.
+- Chat ID формата `-100...` обрабатывается напрямую (устойчиво к рестарту и `/debug_chatid`).
+- Документация: `docs/channel_registration.md`.
+
+---
+
 ## [1.0.0-beta] — 2026-06-29
 
 ### Fixed (Integration Audit)

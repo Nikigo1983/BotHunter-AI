@@ -2,12 +2,15 @@ from collections.abc import Callable
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.repositories.ai_feedback import AIFeedbackRepository
+from app.repositories.admin_dashboard import AdminDashboardRepository
 from app.repositories.ai_analysis import AIAnalysisRepository
 from app.repositories.audit_log import AuditLogRepository
 from app.repositories.base import BaseRepository
 from app.repositories.blacklist import BlacklistRepository
 from app.repositories.channel_connection_error import ChannelConnectionErrorRepository
 from app.repositories.join_request import JoinRequestRepository
+from app.repositories.manual_review import ManualReviewRepository
 from app.repositories.reputation import ReputationRepository
 from app.repositories.telegram_bot import TelegramBotRepository
 from app.repositories.telegram_channel import TelegramChannelRepository
@@ -32,12 +35,24 @@ def get_telegram_user_repository(session: AsyncSession) -> TelegramUserRepositor
     return TelegramUserRepository(session)
 
 
+def get_manual_review_repository(session: AsyncSession) -> ManualReviewRepository:
+    return ManualReviewRepository(session)
+
+
+def get_ai_feedback_repository(session: AsyncSession) -> AIFeedbackRepository:
+    return AIFeedbackRepository(session)
+
+
 def get_join_request_repository(session: AsyncSession) -> JoinRequestRepository:
     return JoinRequestRepository(session)
 
 
 def get_ai_analysis_repository(session: AsyncSession) -> AIAnalysisRepository:
     return AIAnalysisRepository(session)
+
+
+def get_admin_dashboard_repository(session: AsyncSession) -> AdminDashboardRepository:
+    return AdminDashboardRepository(session)
 
 
 def get_blacklist_repository(session: AsyncSession) -> BlacklistRepository:

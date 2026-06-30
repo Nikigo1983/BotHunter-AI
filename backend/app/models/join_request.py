@@ -13,6 +13,8 @@ from app.models.mixins import CreatedAtMixin, UUIDPrimaryKeyMixin
 
 if TYPE_CHECKING:
     from app.models.ai_analysis import AIAnalysis
+    from app.models.ai_feedback import AIFeedback
+    from app.models.manual_review import ManualReview
     from app.models.telegram_channel import TelegramChannel
     from app.models.telegram_user import TelegramUser
 
@@ -50,6 +52,14 @@ class JoinRequest(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
     channel: Mapped[TelegramChannel] = relationship(back_populates="join_requests")
     telegram_user: Mapped[TelegramUser] = relationship(back_populates="join_requests")
     ai_analyses: Mapped[list[AIAnalysis]] = relationship(
+        back_populates="join_request",
+        cascade="all, delete-orphan",
+    )
+    manual_reviews: Mapped[list[ManualReview]] = relationship(
+        back_populates="join_request",
+        cascade="all, delete-orphan",
+    )
+    ai_feedbacks: Mapped[list[AIFeedback]] = relationship(
         back_populates="join_request",
         cascade="all, delete-orphan",
     )

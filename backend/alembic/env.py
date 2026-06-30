@@ -10,10 +10,12 @@ from app.config import get_settings
 from app.database.base import Base
 from app.models import (  # noqa: F401
     AIAnalysis,
+    AIFeedback,
     AuditLog,
     Blacklist,
     ChannelConnectionError,
     JoinRequest,
+    ManualReview,
     Reputation,
     TelegramBot,
     TelegramChannel,

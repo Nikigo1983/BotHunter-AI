@@ -4,7 +4,7 @@
 
 BotHunter AI follows clean architecture with clear separation of concerns.
 
-**Текущая версия:** v1.0-beta — интегрированный production pipeline.
+**Текущая версия:** v1.2 — Admin Actions & Feedback Loop MVP.
 
 ## Layers
 
@@ -62,12 +62,37 @@ Infrastructure →  database/, repositories/, config/, ai/, utils/
 
 Подробности: [docs/repositories.md](repositories.md).
 
-## Channel registration (v0.4)
+## Channel registration (v1.0-beta)
 
-- Команда `/connect` в Telegram-боте.
+- Команда `/connect` — инструкция (FSM только для UX).
+- Chat ID формата `-100...` регистрирует канал **без зависимости от FSM**.
 - `ChannelRegistrationService` проверяет канал и права бота через Telegram API.
 - Успешное подключение сохраняется в `telegram_channels`.
 - Ошибки сохраняются в `channel_connection_errors`.
+
+Подробности: [docs/channel_registration.md](channel_registration.md).
+
+## Admin Dashboard (v1.2)
+
+- Интерактивные действия: Approve, Reject, Whitelist, Blacklist.
+- `AdminJoinRequestActionService` → Telegram API → PostgreSQL → Audit/Feedback.
+- Whitelist/blacklist интегрированы в join pipeline.
+
+Подробности: [docs/dashboard.md](dashboard.md).
+
+## Admin Dashboard (v1.1)
+
+- Web UI: `/admin` (Jinja2 + HTMX + Bootstrap 5).
+- REST API: `/api/v1/admin/*`.
+- `AdminDashboardService` + DTO, read-only доступ к PostgreSQL через `AdminDashboardRepository`.
+
+Подробности: [docs/dashboard.md](dashboard.md).
+
+## Telegram Bot FSM
+
+- FSM: `RedisStorage` (`app/bot/storage.py`), URL из `Settings.redis_url`.
+- Состояния `/connect`, `/debug_chatid` и будущих сценариев переживают перезапуск бота.
+- Redis уже используется в Docker Compose (`bothunter-redis`).
 
 ## Rule Engine (v0.5)
 

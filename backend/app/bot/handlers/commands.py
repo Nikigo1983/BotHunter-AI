@@ -14,7 +14,8 @@ HELP_TEXT = (
     "📋 Доступные команды:\n\n"
     "/start — приветствие и статус платформы\n"
     "/help — список доступных команд\n"
-    "/connect — подключить Telegram-канал к BotHunter AI"
+    "/connect — подключить Telegram-канал к BotHunter AI\n"
+    "/debug_chatid — [dev] узнать Chat ID канала по пересылке"
 )
 
 

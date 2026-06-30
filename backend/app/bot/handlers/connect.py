@@ -1,5 +1,8 @@
-from aiogram import Bot, Router
-from aiogram.filters import Command, StateFilter
+import re
+from typing import Final
+
+from aiogram import Bot, F, Router
+from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
@@ -12,6 +15,8 @@ from app.services.channel_registration_types import (
 )
 
 router = Router(name="connect")
+
+TELEGRAM_CHANNEL_CHAT_ID_PATTERN: Final[re.Pattern[str]] = re.compile(r"^-100\d+$")
 
 CONNECT_INSTRUCTIONS = (
     "🔗 Подключение Telegram-канала\n\n"
@@ -41,23 +46,32 @@ FAILURE_TEMPLATE = (
 )
 
 
+def is_telegram_channel_chat_id(text: str | None) -> bool:
+    if not text:
+        return False
+    return TELEGRAM_CHANNEL_CHAT_ID_PATTERN.fullmatch(text.strip()) is not None
+
+
 @router.message(Command("connect"))
 async def handle_connect(message: Message, state: FSMContext) -> None:
     await state.set_state(ConnectChannelStates.waiting_for_channel_id)
     await message.answer(CONNECT_INSTRUCTIONS)
 
 
-@router.message(StateFilter(ConnectChannelStates.waiting_for_channel_id))
-async def handle_channel_id(message: Message, state: FSMContext, bot: Bot) -> None:
+@router.message(F.text.func(lambda text: is_telegram_channel_chat_id(text)))
+async def handle_telegram_channel_chat_id(
+    message: Message,
+    state: FSMContext,
+    bot: Bot,
+) -> None:
     if message.from_user is None or message.text is None:
-        await message.answer("Отправьте числовой ID канала.")
         return
 
     async with async_session_factory() as session:
         service = ChannelRegistrationService(session, bot)
         result = await service.register_channel(
             requester=message.from_user,
-            channel_id_raw=message.text,
+            channel_id_raw=message.text.strip(),
         )
         await session.commit()
 

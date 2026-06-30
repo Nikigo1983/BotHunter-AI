@@ -1,9 +1,11 @@
 from app.models.ai_analysis import AIAnalysis
+from app.models.ai_feedback import AIFeedback
 from app.models.audit_log import AuditLog
 from app.models.blacklist import Blacklist
 from app.models.channel_connection_error import ChannelConnectionError
 from app.models.enums import AnalysisDecision, JoinRequestStatus
 from app.models.join_request import JoinRequest
+from app.models.manual_review import AdminAction, ManualReview
 from app.models.reputation import Reputation
 from app.models.telegram_bot import TelegramBot
 from app.models.telegram_channel import TelegramChannel
@@ -13,12 +15,15 @@ from app.models.whitelist import Whitelist
 
 __all__ = [
     "AIAnalysis",
+    "AIFeedback",
+    "AdminAction",
     "AnalysisDecision",
     "AuditLog",
     "Blacklist",
     "ChannelConnectionError",
     "JoinRequest",
     "JoinRequestStatus",
+    "ManualReview",
     "Reputation",
     "TelegramBot",
     "TelegramChannel",

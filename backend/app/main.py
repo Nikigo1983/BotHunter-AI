@@ -4,6 +4,7 @@ from collections.abc import AsyncIterator
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.admin.router import router as admin_web_router
 from app.api.v1.router import api_v1_router
 from app.config import get_settings
 from app.database import engine
@@ -45,6 +46,7 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(api_v1_router, prefix=settings.api_v1_prefix)
+    app.include_router(admin_web_router)
 
     @app.get("/", include_in_schema=False)
     async def root() -> dict[str, str]:
@@ -52,6 +54,7 @@ def create_app() -> FastAPI:
             "message": f"Welcome to {settings.app_name}",
             "docs": "/docs",
             "health": f"{settings.api_v1_prefix}/health",
+            "admin": "/admin",
         }
 
     return app
