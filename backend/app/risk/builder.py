@@ -42,6 +42,8 @@ class RiskProfileBuilder:
         rule_result: RuleEngineResult,
         *,
         trust_score: float | None = None,
+        rule_score: float | None = None,
+        history: list[str] | None = None,
     ) -> RiskProfile:
         signals = self._collect_signals(features)
         risk_level = self._resolve_risk_level(rule_result.rule_score)
@@ -56,6 +58,8 @@ class RiskProfileBuilder:
             signals=signals,
             summary=summary,
             trust_score=trust_score,
+            rule_score=rule_score,
+            history=history,
         )
 
     def _collect_signals(self, features: FeatureSet) -> list[str]:

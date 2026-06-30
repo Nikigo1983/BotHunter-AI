@@ -5,15 +5,18 @@ from aiogram import Bot
 from aiogram.types import ChatJoinRequest, User as TelegramProfile
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.ai.cost import estimate_request_cost_usd
 from app.ai.enums import AIServiceStatus
 from app.ai.result import AIServiceResult
 from app.ai.service import AIService
 from app.models.ai_analysis import AIAnalysis
+from app.models.ai_usage import AIUsage
 from app.models.enums import AnalysisDecision, JoinRequestStatus
 from app.models.join_request import JoinRequest
 from app.models.telegram_user import TelegramUser
 from app.repositories.deps import (
     get_ai_analysis_repository,
+    get_ai_usage_repository,
     get_blacklist_repository,
     get_join_request_repository,
     get_telegram_channel_repository,
@@ -67,6 +70,7 @@ class JoinRequestProcessingService:
         self._channel_repo = get_telegram_channel_repository(session)
         self._join_request_repo = get_join_request_repository(session)
         self._analysis_repo = get_ai_analysis_repository(session)
+        self._ai_usage_repo = get_ai_usage_repository(session)
         self._whitelist_repo = get_whitelist_repository(session)
         self._blacklist_repo = get_blacklist_repository(session)
         self._reputation_service = ReputationService(session)
@@ -138,16 +142,24 @@ class JoinRequestProcessingService:
 
         features = self._feature_extractor.extract(telegram_user)
         rule_result = self._rule_engine.evaluate(features)
+        reputation_history = await self._reputation_service.get_history(telegram_user.id, limit=5)
+        history_lines = [
+            f"{item.reason.value}: {item.old_score:.0f} -> {item.new_score:.0f}"
+            for item in reputation_history
+        ]
         risk_profile = self._risk_profile_builder.build(
             features,
             rule_result,
             trust_score=trust_score,
+            rule_score=float(rule_result.rule_score),
+            history=history_lines or None,
         )
         initial_decision = self._decision_engine.decide(rule_result.rule_score)
 
         ai_service_result: AIServiceResult | None = None
         if initial_decision == AnalysisDecision.MANUAL_REVIEW:
             ai_service_result = self._ai_service.analyze(initial_decision, risk_profile)
+            await self._persist_ai_usage(ai_service_result)
 
         final_decision = self._resolve_final_decision(initial_decision, ai_service_result)
         ai_score = self._resolve_ai_score(ai_service_result)
@@ -394,6 +406,30 @@ class JoinRequestProcessingService:
             ),
         }
         return json.dumps(payload, ensure_ascii=False)
+
+    async def _persist_ai_usage(self, ai_service_result: AIServiceResult | None) -> None:
+        if ai_service_result is None or ai_service_result.analysis is None:
+            return
+        if ai_service_result.status not in {AIServiceStatus.SUCCESS, AIServiceStatus.FALLBACK}:
+            return
+
+        analysis = ai_service_result.analysis
+        estimated_cost = estimate_request_cost_usd(
+            analysis.model,
+            analysis.prompt_tokens,
+            analysis.completion_tokens,
+        )
+        await self._ai_usage_repo.create(
+            AIUsage(
+                provider=analysis.provider,
+                model=analysis.model,
+                prompt_tokens=analysis.prompt_tokens,
+                completion_tokens=analysis.completion_tokens,
+                total_tokens=analysis.total_tokens,
+                estimated_cost=estimated_cost,
+                latency_ms=analysis.response_time_ms,
+            )
+        )
 
     @staticmethod
     def _log_processing(

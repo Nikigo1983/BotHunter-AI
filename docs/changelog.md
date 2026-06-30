@@ -1,5 +1,30 @@
 # BotHunter AI — Changelog
 
+## [1.4.0] — 2026-06-30
+
+### Added
+
+- **OpenRouterProvider** — универсальный AI Gateway через HTTP API (httpx).
+- **AIRouter** — выбор provider по `AI_PROVIDER` (mock / openrouter / openai).
+- Настройки: `OPENROUTER_API_KEY`, `OPENROUTER_BASE_URL`, `OPENROUTER_MODEL`, `AI_TIMEOUT`, `AI_MAX_RETRIES`.
+- Поддержка моделей через `.env` без изменения кода (GPT-4.1, Claude, Gemini, DeepSeek, Llama).
+- Расширенный `PromptBuilder`: rule score, trust score, signals, summary, reputation history (без PII).
+- Расширенный `StructuredAnalysisOutput`: risk_score, recommended_action, signals.
+- Таблица `ai_usage` — provider, model, tokens, cost, latency.
+- Dashboard: `/admin/ai` (статистика), `/admin/settings/ai` (read-only конфиг).
+- AI Status: Success / Fallback / Failed.
+- Документация: `docs/openrouter.md`.
+- Unit + integration tests для OpenRouter, AIRouter, retry, timeout, fallback, ai_usage.
+
+### Not changed (by design)
+
+- Rule Engine
+- Reputation Engine
+- Decision Engine business logic
+- OpenAI SDK provider (legacy, optional)
+
+---
+
 ## [1.3.0] — 2026-06-30
 
 ### Added

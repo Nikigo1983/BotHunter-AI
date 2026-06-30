@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database.session import get_db_session
 from app.repositories.admin_dashboard import StatusFilter
+from app.services.admin_ai import AdminAIService
 from app.services.admin_dashboard import AdminDashboardService, PAGE_SIZE
 from app.services.admin_join_request_action import AdminJoinRequestActionService
 
@@ -32,6 +33,12 @@ async def get_action_service(
     return AdminJoinRequestActionService(session)
 
 
+async def get_admin_ai_service(
+    session: AsyncSession = Depends(get_db_session),
+) -> AdminAIService:
+    return AdminAIService(session)
+
+
 def status_badge_class(status: str) -> str:
     mapping = {
         "Approved": "success",
@@ -50,10 +57,11 @@ def decision_badge_class(decision: str | None) -> str:
 
 def format_ai_status(status: str | None) -> str:
     mapping = {
-        "SUCCESS": "Primary provider",
-        "FALLBACK": "Fallback provider",
+        "SUCCESS": "Success",
+        "FALLBACK": "Fallback",
         "SKIPPED": "Skipped",
-        "AI_UNAVAILABLE": "Unavailable",
+        "AI_UNAVAILABLE": "Failed",
+        "FAILED": "Failed",
     }
     if not status:
         return "—"
@@ -208,4 +216,30 @@ async def admin_blacklist_action(
     parsed_id = _parse_join_request_id(join_request_id)
     result = await action_service.blacklist(parsed_id)
     return _redirect_to_detail(parsed_id, result)
+
+
+@router.get("/ai", response_class=HTMLResponse)
+async def admin_ai_usage(
+    request: Request,
+    service: AdminAIService = Depends(get_admin_ai_service),
+) -> HTMLResponse:
+    stats = await service.get_usage_statistics()
+    return ADMIN_TEMPLATES.TemplateResponse(
+        request,
+        "dashboard/ai.html",
+        {"stats": stats},
+    )
+
+
+@router.get("/settings/ai", response_class=HTMLResponse)
+async def admin_ai_settings(
+    request: Request,
+    service: AdminAIService = Depends(get_admin_ai_service),
+) -> HTMLResponse:
+    settings = service.get_ai_settings()
+    return ADMIN_TEMPLATES.TemplateResponse(
+        request,
+        "dashboard/ai_settings.html",
+        {"settings": settings},
+    )
 

@@ -17,8 +17,10 @@ __all__ = [
     "AIServiceResult",
     "AIServiceStatus",
     "AITimeoutError",
+    "AIRouter",
     "MockAIProvider",
     "OpenAIProvider",
+    "OpenRouterProvider",
     "Prompt",
     "PromptBuilder",
     "StructuredAnalysisOutput",
@@ -31,4 +33,12 @@ def __getattr__(name: str):
         from app.ai.openai_provider import OpenAIProvider
 
         return OpenAIProvider
+    if name == "OpenRouterProvider":
+        from app.ai.openrouter_provider import OpenRouterProvider
+
+        return OpenRouterProvider
+    if name == "AIRouter":
+        from app.ai.router import AIRouter
+
+        return AIRouter
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

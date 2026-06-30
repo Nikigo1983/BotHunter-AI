@@ -8,6 +8,8 @@ Web Admin Dashboard позволяет просматривать и обраб�
 
 OpenAI **не используется** в dashboard.
 
+**v1.4:** OpenRouter AI Gateway — `/admin/ai`, `/admin/settings/ai`, ai_usage tracking.
+
 **v1.3:** Reputation Engine — Trust Score, auto approve/reject, Reputation History, REST API reputation.
 
 **v1.2:** интерактивные действия администратора (Approve/Reject/Whitelist/Blacklist) + feedback loop.
@@ -75,6 +77,14 @@ Flash-сообщения показываются после redirect.
 
 - **Whitelisted** — пользователь в whitelist
 - **Blacklisted** — пользователь в blacklist
+
+| `/admin/settings/ai` | Read-only AI конфигурация (provider, model, timeout, retry) |
+
+### AI Usage (v1.4)
+
+| URL | Описание |
+|-----|----------|
+| `/admin/ai` | AI-статистика: запросы, токены, cost, latency, top models, daily |
 
 ---
 

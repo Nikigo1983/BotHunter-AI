@@ -11,6 +11,7 @@ from app.database.base import Base
 from app.models import (  # noqa: F401
     AIAnalysis,
     AIFeedback,
+    AIUsage,
     AuditLog,
     Blacklist,
     ChannelConnectionError,

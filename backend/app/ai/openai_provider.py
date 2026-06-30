@@ -7,7 +7,7 @@ from app.ai.exceptions import AIProviderError, AITimeoutError
 from app.ai.prompt_builder import PromptBuilder
 from app.ai.provider import AIProvider
 from app.ai.result import AIAnalysisResult
-from app.ai.schemas import StructuredAnalysisOutput
+from app.ai.schemas import StructuredAnalysisOutput, structured_output_json_schema
 from app.config import get_settings
 from app.models.enums import AnalysisDecision
 from app.risk.profile import RiskProfile
@@ -62,7 +62,7 @@ class OpenAIProvider(AIProvider):
                     "json_schema": {
                         "name": "risk_analysis",
                         "strict": True,
-                        "schema": StructuredAnalysisOutput.model_json_schema(),
+                        "schema": structured_output_json_schema(),
                     },
                 },
             )

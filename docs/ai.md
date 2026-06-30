@@ -2,11 +2,13 @@
 
 ## Обзор
 
-AI Layer (v0.9) — независимый модуль для AI-анализа профиля риска.
+AI Layer (v0.9 / **v1.4 OpenRouter Gateway**) — независимый модуль для AI-анализа профиля риска.
 
-**Важно:** AI не является основной системой принятия решений. AI вызывается **только** для заявок со статусом `MANUAL_REVIEW`.
+**v1.4:** основной провайдер — `OpenRouterProvider` через `AIRouter`. Mock — fallback.
 
-OpenAI используется через Structured Output (строгий JSON). При недоступности API применяется fallback на `MockAIProvider`.
+OpenRouter использует HTTP API + Structured JSON Output. При недоступности API применяется fallback на `MockAIProvider`.
+
+Подробности OpenRouter: [docs/openrouter.md](openrouter.md).
 
 ---
 

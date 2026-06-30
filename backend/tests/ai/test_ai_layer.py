@@ -8,7 +8,7 @@ from app.ai.mock_provider import MockAIProvider
 from app.ai.prompt_builder import PromptBuilder
 from app.ai.provider import AIProvider
 from app.ai.result import AIAnalysisResult
-from app.ai.schemas import StructuredAnalysisOutput
+from app.ai.schemas import StructuredAnalysisOutput, structured_output_json_schema
 from app.ai.service import AIService
 from app.ai.enums import AIServiceStatus
 from app.features import FeatureExtractor
@@ -120,6 +120,9 @@ def test_prompt_builder_contains_risk_fields_only() -> None:
     assert profile.risk_level.value in prompt.user
     assert str(profile.confidence)[:3] in prompt.user or f"{profile.confidence:.2f}" in prompt.user
     assert profile.summary in prompt.user
+    assert "Rule score:" in prompt.user
+    assert "Trust score:" in prompt.user
+    assert "History:" in prompt.user
     assert "secret_name" not in prompt.user.lower()
     assert "secret" not in prompt.user.lower()
     assert "telegram_id" not in prompt.user.lower()
@@ -128,9 +131,10 @@ def test_prompt_builder_contains_risk_fields_only() -> None:
 
 
 def test_structured_output_schema_has_required_fields() -> None:
-    schema = StructuredAnalysisOutput.model_json_schema()
-    assert "ai_score" in schema["properties"]
+    schema = structured_output_json_schema()
+    assert "risk_score" in schema["properties"]
     assert "decision" in schema["properties"]
+    assert "recommended_action" in schema["properties"]
 
 
 def test_ai_service_skips_approved_and_rejected() -> None:

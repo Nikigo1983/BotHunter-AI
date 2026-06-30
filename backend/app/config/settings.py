@@ -41,6 +41,13 @@ class Settings(BaseSettings):
     openai_model: str = "gpt-4o-mini"
     openai_timeout: float = 30.0
 
+    ai_provider: str = "mock"
+    openrouter_api_key: str = ""
+    openrouter_base_url: str = "https://openrouter.ai/api/v1"
+    openrouter_model: str = "openai/gpt-4.1"
+    ai_timeout: float = 30.0
+    ai_max_retries: int = 2
+
     decision_approve_below: int = 30
     decision_reject_from: int = 70
 

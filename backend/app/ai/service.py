@@ -3,9 +3,9 @@ from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeou
 from app.ai.cost import estimate_request_cost_usd
 from app.ai.enums import AIServiceStatus
 from app.ai.exceptions import AIError, AIProviderError, AITimeoutError
-from app.ai.mock_provider import MockAIProvider
 from app.ai.provider import AIProvider
 from app.ai.result import AIServiceResult
+from app.ai.router import AIRouter
 from app.config import get_settings
 from app.models.enums import AnalysisDecision
 from app.risk.profile import RiskProfile
@@ -21,20 +21,18 @@ class AIService:
         self,
         provider: AIProvider | None = None,
         fallback_provider: AIProvider | None = None,
-        max_retries: int = 2,
+        max_retries: int | None = None,
         timeout: float | None = None,
     ) -> None:
         settings = get_settings()
         self._provider = provider
         self._fallback_provider = fallback_provider
-        self._max_retries = max_retries
-        self._timeout = timeout if timeout is not None else settings.openai_timeout
+        self._max_retries = max_retries if max_retries is not None else settings.ai_max_retries
+        self._timeout = timeout if timeout is not None else settings.ai_timeout
 
     @staticmethod
     def _create_default_provider() -> AIProvider:
-        from app.ai.openai_provider import OpenAIProvider
-
-        return OpenAIProvider()
+        return AIRouter.create_primary_provider()
 
     def _get_provider(self) -> AIProvider:
         if self._provider is None:
@@ -43,7 +41,7 @@ class AIService:
 
     def _get_fallback_provider(self) -> AIProvider:
         if self._fallback_provider is None:
-            self._fallback_provider = MockAIProvider()
+            self._fallback_provider = AIRouter.create_fallback_provider()
         return self._fallback_provider
 
     def analyze(
@@ -64,8 +62,9 @@ class AIService:
         for attempt in range(1, self._max_retries + 1):
             try:
                 result = self._call_with_timeout(self._get_provider(), risk_profile)
+                service_result = AIServiceResult(status=AIServiceStatus.SUCCESS, analysis=result)
                 self._log_success(result, attempt=attempt, used_fallback=False)
-                return AIServiceResult(status=AIServiceStatus.SUCCESS, analysis=result)
+                return service_result
             except AIError as exc:
                 last_error = exc
                 logger.warning(
@@ -81,6 +80,10 @@ class AIService:
                 self._get_fallback_provider(),
                 risk_profile,
             )
+            service_result = AIServiceResult(
+                status=AIServiceStatus.FALLBACK,
+                analysis=fallback_result,
+            )
             self._log_success(fallback_result, attempt=0, used_fallback=True)
             logger.warning(
                 "Primary AI unavailable, fallback provider used primary=%s fallback=%s error=%s",
@@ -88,10 +91,7 @@ class AIService:
                 self._get_fallback_provider().name,
                 last_error,
             )
-            return AIServiceResult(
-                status=AIServiceStatus.FALLBACK,
-                analysis=fallback_result,
-            )
+            return service_result
         except AIError as fallback_error:
             logger.error(
                 "AI unavailable primary=%s fallback=%s primary_error=%s fallback_error=%s",

@@ -1,5 +1,6 @@
 from app.models.ai_analysis import AIAnalysis
 from app.models.ai_feedback import AIFeedback
+from app.models.ai_usage import AIUsage
 from app.models.audit_log import AuditLog
 from app.models.blacklist import Blacklist
 from app.models.channel_connection_error import ChannelConnectionError
@@ -17,6 +18,7 @@ from app.models.whitelist import Whitelist
 __all__ = [
     "AIAnalysis",
     "AIFeedback",
+    "AIUsage",
     "AdminAction",
     "AnalysisDecision",
     "AuditLog",

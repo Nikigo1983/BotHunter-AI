@@ -1,0 +1,56 @@
+{% extends "dashboard/base.html" %}
+{% block title %}AI Settings — BotHunter Admin{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">AI Settings</h1>
+    <a href="/admin/ai" class="btn btn-outline-secondary btn-sm">AI Usage</a>
+</div>
+
+<div class="alert alert-info">Страница только для просмотра. Изменения выполняются через <code>.env</code>.</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">Provider</dt>
+            <dd class="col-sm-9"><span class="badge text-bg-primary">{{ settings.provider }}</span></dd>
+
+            <dt class="col-sm-3">Model</dt>
+            <dd class="col-sm-9"><code>{{ settings.model }}</code></dd>
+
+            <dt class="col-sm-3">Timeout</dt>
+            <dd class="col-sm-9">{{ settings.timeout }} s</dd>
+
+            <dt class="col-sm-3">Retry</dt>
+            <dd class="col-sm-9">{{ settings.max_retries }} attempts</dd>
+
+            <dt class="col-sm-3">Fallback</dt>
+            <dd class="col-sm-9">{{ settings.fallback }}</dd>
+
+            <dt class="col-sm-3">OpenRouter Base URL</dt>
+            <dd class="col-sm-9"><code>{{ settings.openrouter_base_url }}</code></dd>
+
+            <dt class="col-sm-3">API Key</dt>
+            <dd class="col-sm-9">
+                {% if settings.api_key_configured %}
+                <span class="badge text-bg-success">Configured</span>
+                {% else %}
+                <span class="badge text-bg-warning">Not configured (Mock fallback)</span>
+                {% endif %}
+            </dd>
+        </dl>
+    </div>
+</div>
+
+<div class="card shadow-sm mt-4">
+    <div class="card-header fw-semibold">Supported models (via OPENROUTER_MODEL)</div>
+    <div class="card-body">
+        <ul class="mb-0">
+            <li><code>openai/gpt-4.1</code></li>
+            <li><code>anthropic/claude-sonnet-4</code></li>
+            <li><code>google/gemini-2.5-pro</code></li>
+            <li><code>deepseek/deepseek-chat</code></li>
+            <li><code>meta-llama/llama-3.3-70b-instruct</code></li>
+        </ul>
+    </div>
+</div>
+{% endblock %}

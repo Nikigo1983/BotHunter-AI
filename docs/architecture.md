@@ -4,7 +4,7 @@
 
 BotHunter AI follows clean architecture with clear separation of concerns.
 
-**Текущая версия:** v1.3 — Reputation & Learning Engine.
+**Текущая версия:** v1.4 — Universal AI Gateway (OpenRouter).
 
 ## Layers
 
@@ -83,6 +83,16 @@ Infrastructure →  database/, repositories/, config/, ai/, utils/
 
 Подробности: [docs/reputation.md](reputation.md), [docs/dashboard.md](dashboard.md).
 
+## AI Gateway (v1.4)
+
+- `OpenRouterProvider` — универсальный HTTP-провайдер через OpenRouter API (httpx, без OpenAI SDK).
+- `AIRouter` — выбор provider по `AI_PROVIDER` (mock / openrouter / openai).
+- Таблица `ai_usage` — статистика токенов, стоимости, latency.
+- Dashboard: `/admin/ai`, `/admin/settings/ai`.
+- Fallback на `MockAIProvider` при недоступности OpenRouter.
+
+Подробности: [docs/openrouter.md](openrouter.md).
+
 ## Reputation Engine (v1.3)
 
 - `ReputationEngine` + `ReputationService` — расчёт `trust_score` (0–100, default 50).
@@ -139,14 +149,15 @@ Infrastructure →  database/, repositories/, config/, ai/, utils/
 
 Подробности: [docs/risk_profile.md](risk_profile.md).
 
-## AI Layer (v0.9)
+## AI Layer (v0.9 / v1.4)
 
 - `AIService` — AI только для `MANUAL_REVIEW`.
-- `AIProvider` + `MockAIProvider` + `OpenAIProvider` (Structured Output).
-- `PromptBuilder` — prompt без персональных данных.
-- Retry, timeout, fallback, logging.
+- **v1.4:** `OpenRouterProvider` + `AIRouter` — универсальный gateway для LLM.
+- `MockAIProvider` — fallback и тесты.
+- `OpenAIProvider` — legacy (OpenAI SDK).
+- Retry (2), timeout (30s), fallback, `ai_usage` tracking.
 
-Подробности: [docs/ai.md](ai.md).
+Подробности: [docs/ai.md](ai.md), [docs/openrouter.md](openrouter.md).
 
 ## Join Request Processing (v1.0-beta)
 
