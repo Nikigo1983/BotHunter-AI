@@ -8,6 +8,8 @@ Web Admin Dashboard позволяет просматривать и обраб�
 
 OpenAI **не используется** в dashboard.
 
+**v1.3:** Reputation Engine — Trust Score, auto approve/reject, Reputation History, REST API reputation.
+
 **v1.2:** интерактивные действия администратора (Approve/Reject/Whitelist/Blacklist) + feedback loop.
 
 ---
@@ -53,6 +55,22 @@ flowchart LR
 
 Flash-сообщения показываются после redirect.
 
+### Trust Score (v1.3)
+
+| Место | Отображение |
+|-------|-------------|
+| Главная | Колонка **Trust**, карточка **Avg Trust** |
+| Detail | Карточка **Trust Score** (N / 100), секция Risk Profile |
+| Reputation History | Таблица: дата, old/new score, причина, администратор |
+
+Цвета бейджа:
+
+| Диапазон | Цвет |
+|----------|------|
+| 80–100 | зелёный (`success`) |
+| 40–79 | жёлтый (`warning`) |
+| 0–39 | красный (`danger`) |
+
 ### Бейджи на главной
 
 - **Whitelisted** — пользователь в whitelist
@@ -66,7 +84,8 @@ Flash-сообщения показываются после redirect.
 |--------|-----|----------|
 | GET | `/api/v1/admin/join-requests` | Список заявок |
 | GET | `/api/v1/admin/join-requests/{id}` | Детали заявки |
-| GET | `/api/v1/admin/statistics` | Статистика |
+| GET | `/api/v1/admin/statistics` | Статистика (+ avg_trust_score) |
+| GET | `/api/v1/admin/reputation/{telegram_user_id}` | Trust score, history, trend |
 | POST | `/api/v1/admin/join-requests/{id}/approve` | Одобрить |
 | POST | `/api/v1/admin/join-requests/{id}/reject` | Отклонить |
 | POST | `/api/v1/admin/join-requests/{id}/whitelist` | Whitelist |
@@ -78,7 +97,7 @@ Flash-сообщения показываются после redirect.
 
 | Сервис | Назначение |
 |--------|------------|
-| `AdminDashboardService` | Read-only: список, detail, statistics |
+| `AdminDashboardService` | Read-only: список, detail, statistics, reputation |
 | `AdminJoinRequestActionService` | Approve/Reject/Whitelist/Blacklist |
 
 ---
@@ -107,5 +126,5 @@ docker exec bothunter-api alembic upgrade head
 ## Тесты
 
 ```bash
-python -m pytest tests/admin/ tests/services/test_join_request_list_match.py -v
+python -m pytest tests/admin/ tests/reputation/ tests/services/test_join_request_list_match.py -v
 ```

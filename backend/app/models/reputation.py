@@ -28,7 +28,7 @@ class Reputation(UUIDPrimaryKeyMixin, Base):
         ForeignKey("telegram_users.id", ondelete="CASCADE"),
         nullable=False,
     )
-    reputation_score: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    reputation_score: Mapped[float] = mapped_column(Float, default=50.0, server_default="50", nullable=False)
     bot_votes: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     human_votes: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     last_update: Mapped[datetime] = mapped_column(

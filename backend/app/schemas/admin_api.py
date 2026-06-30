@@ -16,6 +16,7 @@ class JoinRequestListItemResponse(BaseModel):
     final_score: float | None
     decision: str | None
     status: str
+    trust_score: float | None = None
 
 
 class JoinRequestListResponse(BaseModel):
@@ -34,6 +35,21 @@ class DashboardStatisticsResponse(BaseModel):
     pending: int
     avg_rule_score: float | None
     avg_ai_score: float | None
+    avg_trust_score: float | None = None
+
+
+class ReputationHistoryEntryResponse(BaseModel):
+    created_at: datetime
+    old_score: float
+    new_score: float
+    reason: str
+    actor: str
+
+
+class ReputationDetailResponse(BaseModel):
+    current_score: float
+    history: list[ReputationHistoryEntryResponse]
+    trend: str
 
 
 class UserInfoResponse(BaseModel):
@@ -57,6 +73,7 @@ class RiskProfileResponse(BaseModel):
     signals: list[str]
     summary: str | None
     main_reason: str | None
+    trust_score: float | None = None
 
 
 class AIInfoResponse(BaseModel):

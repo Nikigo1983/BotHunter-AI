@@ -15,6 +15,7 @@ from app.models.telegram_user import TelegramUser
 from app.repositories.deps import (
     get_ai_analysis_repository,
     get_join_request_repository,
+    get_reputation_repository,
     get_telegram_bot_repository,
     get_telegram_channel_repository,
     get_telegram_user_repository,
@@ -116,6 +117,83 @@ async def test_admin_dashboard_service_list_and_statistics(session: AsyncSession
     assert stats.total >= 2
     assert stats.manual_review >= 1
     assert stats.approved >= 1
+    assert stats.avg_trust_score is not None
+
+
+@pytest.mark.asyncio
+async def test_admin_dashboard_trust_score_on_list_and_detail(session: AsyncSession) -> None:
+    join_request = await seed_join_request(session, suffix="trust1", telegram_id=910201)
+    telegram_user = await get_telegram_user_repository(session).get_by_telegram_id(910201)
+    assert telegram_user is not None
+    reputation_repo = get_reputation_repository(session)
+    reputation = await reputation_repo.get_or_create(telegram_user.id)
+    reputation.reputation_score = 78.0
+    await reputation_repo.update(reputation)
+
+    service = AdminDashboardService(session)
+    result = await service.list_join_requests(status_filter="all", search="910201")
+    detail = await service.get_join_request_detail(join_request.id)
+
+    assert result.items[0].trust_score == 78.0
+    assert detail is not None
+    assert detail.trust_score == 78.0
+
+
+@pytest.mark.asyncio
+async def test_admin_api_reputation_detail(session: AsyncSession) -> None:
+    await seed_join_request(session, suffix="repapi", telegram_id=910301)
+    telegram_user = await get_telegram_user_repository(session).get_by_telegram_id(910301)
+    assert telegram_user is not None
+
+    from app.reputation.enums import ReputationChangeReason
+    from app.reputation.service import ReputationService
+
+    reputation_service = ReputationService(session)
+    await reputation_service.increase(
+        telegram_user.id,
+        reason=ReputationChangeReason.MANUAL_APPROVED,
+    )
+
+    from app.database.session import get_db_session
+
+    async def override_get_db_session():
+        yield session
+
+    app.dependency_overrides[get_db_session] = override_get_db_session
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.get(f"/api/v1/admin/reputation/{910301}")
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["current_score"] == 55.0
+        assert len(payload["history"]) >= 1
+        assert payload["trend"] in {"UP", "DOWN", "STABLE"}
+    app.dependency_overrides.clear()
+
+
+@pytest.mark.asyncio
+async def test_admin_web_dashboard_shows_trust(session: AsyncSession) -> None:
+    await seed_join_request(session, suffix="webtrust", channel_title="Trust Channel", telegram_id=910401)
+    telegram_user = await get_telegram_user_repository(session).get_by_telegram_id(910401)
+    assert telegram_user is not None
+    reputation_repo = get_reputation_repository(session)
+    reputation = await reputation_repo.get_or_create(telegram_user.id)
+    reputation.reputation_score = 82.0
+    await reputation_repo.update(reputation)
+
+    from app.database.session import get_db_session
+
+    async def override_get_db_session():
+        yield session
+
+    app.dependency_overrides[get_db_session] = override_get_db_session
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.get("/admin")
+        assert response.status_code == 200
+        assert "Avg Trust" in response.text
+        assert "82" in response.text
+    app.dependency_overrides.clear()
 
 
 @pytest.mark.asyncio

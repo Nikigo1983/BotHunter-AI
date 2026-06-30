@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from app.models.join_request import JoinRequest
     from app.models.manual_review import ManualReview
     from app.models.reputation import Reputation
+    from app.models.reputation_history import ReputationHistory
     from app.models.whitelist import Whitelist
 
 
@@ -39,6 +40,10 @@ class TelegramUser(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     reputation: Mapped[Reputation | None] = relationship(
         back_populates="telegram_user",
         uselist=False,
+        cascade="all, delete-orphan",
+    )
+    reputation_history: Mapped[list[ReputationHistory]] = relationship(
+        back_populates="telegram_user",
         cascade="all, delete-orphan",
     )
     blacklist_entries: Mapped[list[Blacklist]] = relationship(

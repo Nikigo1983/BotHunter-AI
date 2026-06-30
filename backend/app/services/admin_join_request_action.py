@@ -26,6 +26,8 @@ from app.repositories.deps import (
     get_manual_review_repository,
     get_whitelist_repository,
 )
+from app.reputation.enums import ReputationChangeReason
+from app.reputation.service import ReputationService
 from app.utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -69,6 +71,7 @@ class AdminJoinRequestActionService:
         self._manual_review_repo = get_manual_review_repository(session)
         self._ai_feedback_repo = get_ai_feedback_repository(session)
         self._bot_factory = bot_factory or self._default_bot_factory
+        self._reputation_service = ReputationService(session)
 
     async def approve(self, join_request_id: uuid.UUID) -> AdminActionResult:
         return await self._execute_decision_action(
@@ -99,6 +102,7 @@ class AdminJoinRequestActionService:
             await self._whitelist_repo.create(
                 Whitelist(telegram_user_id=context.telegram_user.id, approved_by=None)
             )
+            await self._reputation_service.set_whitelist(context.telegram_user.id)
 
         previous_analysis_decision = (
             context.analysis.decision if context.analysis else AnalysisDecision.MANUAL_REVIEW
@@ -151,6 +155,7 @@ class AdminJoinRequestActionService:
                     source="admin_dashboard",
                 )
             )
+            await self._reputation_service.set_blacklist(context.telegram_user.id)
 
         previous_analysis_decision = (
             context.analysis.decision if context.analysis else AnalysisDecision.MANUAL_REVIEW
@@ -244,6 +249,17 @@ class AdminJoinRequestActionService:
             previous_analysis_decision=previous_analysis_decision,
         )
         await self._write_audit(action=admin_action.value.lower(), entity_id=context.join_request.id)
+
+        if admin_action == AdminAction.APPROVE:
+            await self._reputation_service.increase(
+                context.telegram_user.id,
+                reason=ReputationChangeReason.MANUAL_APPROVED,
+            )
+        elif admin_action == AdminAction.REJECT:
+            await self._reputation_service.decrease(
+                context.telegram_user.id,
+                reason=ReputationChangeReason.MANUAL_REJECTED,
+            )
 
         return AdminActionResult(success=True, message=success_message)
 

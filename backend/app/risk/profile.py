@@ -11,6 +11,7 @@ class RiskProfile:
     main_reason: str
     signals: list[str]
     summary: str
+    trust_score: float | None = None
 
     def to_dict(self) -> dict[str, Any]:
         data = asdict(self)

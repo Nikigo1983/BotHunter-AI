@@ -9,6 +9,7 @@ from app.models.ai_analysis import AIAnalysis
 from app.models.blacklist import Blacklist
 from app.models.enums import JoinRequestStatus
 from app.models.join_request import JoinRequest
+from app.models.reputation import Reputation
 from app.models.telegram_channel import TelegramChannel
 from app.models.telegram_user import TelegramUser
 from app.models.whitelist import Whitelist
@@ -94,6 +95,13 @@ class AdminDashboardRepository:
         avg_ai_score = (
             await self._session.execute(select(func.avg(AIAnalysis.ai_score)))
         ).scalar_one()
+        avg_trust_score = (
+            await self._session.execute(select(func.avg(Reputation.reputation_score)))
+        ).scalar_one()
+        from app.reputation.engine import DEFAULT_TRUST_SCORE
+
+        if avg_trust_score is None and total > 0:
+            avg_trust_score = DEFAULT_TRUST_SCORE
 
         return {
             "total": total,
@@ -103,6 +111,7 @@ class AdminDashboardRepository:
             "pending": status_counts.get(JoinRequestStatus.PENDING.value, 0),
             "avg_rule_score": float(avg_rule_score) if avg_rule_score is not None else None,
             "avg_ai_score": float(avg_ai_score) if avg_ai_score is not None else None,
+            "avg_trust_score": float(avg_trust_score) if avg_trust_score is not None else None,
         }
 
     def _apply_filters(
@@ -146,6 +155,25 @@ class AdminDashboardRepository:
 
         return {
             user_id: (user_id in whitelisted, user_id in blacklisted)
+            for user_id in telegram_user_ids
+        }
+
+    async def get_trust_scores(
+        self,
+        telegram_user_ids: list[uuid.UUID],
+    ) -> dict[uuid.UUID, float]:
+        if not telegram_user_ids:
+            return {}
+
+        stmt = select(Reputation.telegram_user_id, Reputation.reputation_score).where(
+            Reputation.telegram_user_id.in_(telegram_user_ids)
+        )
+        rows = (await self._session.execute(stmt)).all()
+        from app.reputation.engine import DEFAULT_TRUST_SCORE
+
+        scores = {row[0]: float(row[1]) for row in rows}
+        return {
+            user_id: scores.get(user_id, DEFAULT_TRUST_SCORE)
             for user_id in telegram_user_ids
         }
 

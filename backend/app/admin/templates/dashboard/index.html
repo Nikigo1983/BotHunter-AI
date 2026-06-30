@@ -15,6 +15,7 @@
     <div class="col-md-2"><div class="card shadow-sm border-warning"><div class="card-body"><div class="text-muted small">Manual Review</div><div class="fs-4 fw-bold text-warning">{{ statistics.manual_review }}</div></div></div></div>
     <div class="col-md-2"><div class="card shadow-sm border-secondary"><div class="card-body"><div class="text-muted small">Pending</div><div class="fs-4 fw-bold text-secondary">{{ statistics.pending }}</div></div></div></div>
     <div class="col-md-2"><div class="card shadow-sm"><div class="card-body"><div class="text-muted small">Avg Rule / AI</div><div class="fw-bold">{{ "%.1f"|format(statistics.avg_rule_score or 0) }} / {{ "%.1f"|format(statistics.avg_ai_score or 0) }}</div></div></div></div>
+    <div class="col-md-2"><div class="card shadow-sm border-info"><div class="card-body"><div class="text-muted small">Avg Trust</div><div class="fs-4 fw-bold text-info">{{ "%.1f"|format(statistics.avg_trust_score or 50) }}</div></div></div></div>
 </div>
 
 <form class="row g-3 mb-3"

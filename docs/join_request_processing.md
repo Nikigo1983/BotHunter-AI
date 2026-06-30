@@ -2,7 +2,7 @@
 
 ## Обзор
 
-Production-пайплайн обработки заявки на вступление (v1.0-beta).
+Production-пайплайн обработки заявки на вступление (v1.3).
 
 ```mermaid
 flowchart TD
@@ -11,9 +11,13 @@ flowchart TD
     C --> W{Whitelist/Blacklist?}
     W -->|Whitelist| WA[Auto APPROVED + Telegram approve]
     W -->|Blacklist| BL[Auto REJECTED + Telegram decline]
-    W -->|No match| D[FeatureExtractor]
+    W -->|No match| R[ReputationService.get_score]
+    R --> RT{trust_score}
+    RT -->|>= 90| RAA[Auto APPROVED reputation]
+    RT -->|<= 10| RAR[Auto REJECTED reputation]
+    RT -->|else| D[FeatureExtractor]
     D --> E[RuleEngine]
-    E --> F[RiskProfileBuilder]
+    E --> F[RiskProfileBuilder + trust_score]
     F --> G[DecisionEngine]
     G --> H{Decision}
     H -->|APPROVED| I[Save AIAnalysis]
@@ -26,6 +30,12 @@ flowchart TD
     M -->|APPROVED| N[approve_chat_join_request]
     M -->|REJECTED| O[decline_chat_join_request]
     M -->|MANUAL_REVIEW| P[Leave pending]
+    N --> DASH[Dashboard]
+    O --> DASH
+    P --> DASH
+    DASH --> ADM[Admin Feedback]
+    ADM --> REP[Reputation Update]
+    REP --> RH[(reputation_history)]
 ```
 
 ---
@@ -50,9 +60,10 @@ flowchart TD
 | 2 | Создать/обновить `TelegramUser` |
 | 3 | Создать `JoinRequest` |
 | 3a | **v1.2:** проверить whitelist/blacklist → short-circuit без Rule Engine |
+| 3b | **v1.3:** `ReputationService.get_score()` → auto APPROVE (≥90) / REJECT (≤10) |
 | 4 | `FeatureExtractor` → `FeatureSet` |
 | 5 | `RuleEngine` → `rule_score` |
-| 6 | `RiskProfileBuilder` → `RiskProfile` |
+| 6 | `RiskProfileBuilder` → `RiskProfile` (+ `trust_score`) |
 | 7 | `DecisionEngine` → initial decision |
 | 8 | Если `MANUAL_REVIEW` → `AIService` |
 | 9 | Финальное решение + `AIAnalysis` |

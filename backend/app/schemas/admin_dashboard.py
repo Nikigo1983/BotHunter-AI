@@ -20,6 +20,7 @@ class JoinRequestListItemDTO:
     status: JoinRequestStatus
     is_whitelisted: bool = False
     is_blacklisted: bool = False
+    trust_score: float = 50.0
 
 
 @dataclass(slots=True)
@@ -40,6 +41,7 @@ class DashboardStatisticsDTO:
     pending: int
     avg_rule_score: float | None
     avg_ai_score: float | None
+    avg_trust_score: float | None = None
 
 
 @dataclass(slots=True)
@@ -66,6 +68,7 @@ class RiskProfileDTO:
     signals: list[str]
     summary: str | None
     main_reason: str | None
+    trust_score: float | None = None
 
 
 @dataclass(slots=True)
@@ -104,6 +107,15 @@ class AIFeedbackItemDTO:
 
 
 @dataclass(slots=True)
+class ReputationHistoryItemDTO:
+    created_at: datetime
+    old_score: float
+    new_score: float
+    reason: str
+    actor: str
+
+
+@dataclass(slots=True)
 class JoinRequestDetailDTO:
     id: uuid.UUID
     channel_title: str
@@ -122,3 +134,5 @@ class JoinRequestDetailDTO:
     actions_disabled: bool = False
     manual_reviews: list[ManualReviewItemDTO] | None = None
     ai_feedbacks: list[AIFeedbackItemDTO] | None = None
+    trust_score: float = 50.0
+    reputation_history: list[ReputationHistoryItemDTO] | None = None

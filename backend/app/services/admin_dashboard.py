@@ -13,8 +13,11 @@ from app.repositories.deps import (
     get_ai_feedback_repository,
     get_blacklist_repository,
     get_manual_review_repository,
+    get_reputation_history_repository,
     get_whitelist_repository,
 )
+from app.reputation.engine import DEFAULT_TRUST_SCORE
+from app.reputation.service import ReputationService
 from app.schemas.admin_dashboard import (
     AIFeedbackItemDTO,
     AIInfoDTO,
@@ -24,6 +27,7 @@ from app.schemas.admin_dashboard import (
     JoinRequestListItemDTO,
     JoinRequestListResultDTO,
     ManualReviewItemDTO,
+    ReputationHistoryItemDTO,
     RiskProfileDTO,
     RuleInfoDTO,
     UserInfoDTO,
@@ -55,6 +59,8 @@ class AdminDashboardService:
         self._ai_feedback_repo = get_ai_feedback_repository(session)
         self._whitelist_repo = get_whitelist_repository(session)
         self._blacklist_repo = get_blacklist_repository(session)
+        self._reputation_service = ReputationService(session)
+        self._reputation_history_repo = get_reputation_history_repository(session)
 
     async def list_join_requests(
         self,
@@ -75,7 +81,8 @@ class AdminDashboardService:
         total_pages = max(1, math.ceil(result.total / page_size)) if result.total else 1
         user_ids = [row.telegram_user.id for row in result.rows]
         list_flags = await self._repository.get_user_list_flags(user_ids)
-        items = [self._map_list_item(row, list_flags) for row in result.rows]
+        trust_scores = await self._repository.get_trust_scores(user_ids)
+        items = [self._map_list_item(row, list_flags, trust_scores) for row in result.rows]
         return JoinRequestListResultDTO(
             items=items,
             total=result.total,
@@ -103,6 +110,10 @@ class AdminDashboardService:
         is_blacklisted = await self._blacklist_repo.exists_by_telegram_user_id(row.telegram_user.id)
         manual_reviews = await self._manual_review_repo.list_by_join_request_id(join_request_id)
         ai_feedbacks = await self._ai_feedback_repo.list_by_join_request_id(join_request_id)
+        trust_score = await self._reputation_service.get_score(row.telegram_user.id)
+        reputation_history = await self._reputation_history_repo.list_by_telegram_user_id(
+            row.telegram_user.id
+        )
 
         return JoinRequestDetailDTO(
             id=row.join_request.id,
@@ -128,6 +139,7 @@ class AdminDashboardService:
                 signals=list(risk_data.get("signals", [])),
                 summary=risk_data.get("summary"),
                 main_reason=risk_data.get("main_reason"),
+                trust_score=risk_data.get("trust_score", trust_score),
             ),
             ai=AIInfoDTO(
                 ai_status=explanation_payload.get("ai_status"),
@@ -168,6 +180,17 @@ class AdminDashboardService:
                 )
                 for item in ai_feedbacks
             ],
+            trust_score=trust_score,
+            reputation_history=[
+                ReputationHistoryItemDTO(
+                    created_at=item.created_at,
+                    old_score=item.old_score,
+                    new_score=item.new_score,
+                    reason=item.reason.value,
+                    actor=item.actor,
+                )
+                for item in reputation_history
+            ],
         )
 
     async def get_statistics(self) -> DashboardStatisticsDTO:
@@ -180,14 +203,39 @@ class AdminDashboardService:
             pending=int(raw["pending"]),
             avg_rule_score=raw["avg_rule_score"],
             avg_ai_score=raw["avg_ai_score"],
+            avg_trust_score=raw["avg_trust_score"],
         )
 
+    async def get_reputation_detail(self, telegram_id: int):
+        from app.repositories.deps import get_telegram_user_repository
+
+        user = await get_telegram_user_repository(self._session).get_by_telegram_id(telegram_id)
+        if user is None:
+            return None
+
+        history = await self._reputation_history_repo.list_by_telegram_user_id(user.id)
+        current_score = await self._reputation_service.get_score(user.id)
+        trend = ReputationService.calculate_trend(history)
+        return {
+            "telegram_id": telegram_id,
+            "current_score": current_score,
+            "history": history,
+            "trend": trend,
+        }
+
     @staticmethod
-    def _map_list_item(row, list_flags: dict | None = None) -> JoinRequestListItemDTO:
+    def _map_list_item(
+        row,
+        list_flags: dict | None = None,
+        trust_scores: dict | None = None,
+    ) -> JoinRequestListItemDTO:
         analysis = row.analysis
         whitelisted, blacklisted = (False, False)
         if list_flags is not None:
             whitelisted, blacklisted = list_flags.get(row.telegram_user.id, (False, False))
+        trust_score = DEFAULT_TRUST_SCORE
+        if trust_scores is not None:
+            trust_score = trust_scores.get(row.telegram_user.id, DEFAULT_TRUST_SCORE)
         return JoinRequestListItemDTO(
             id=row.join_request.id,
             created_at=row.join_request.created_at,
@@ -201,6 +249,7 @@ class AdminDashboardService:
             status=row.join_request.status,
             is_whitelisted=whitelisted,
             is_blacklisted=blacklisted,
+            trust_score=trust_score,
         )
 
     @staticmethod

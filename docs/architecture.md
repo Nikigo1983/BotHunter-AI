@@ -4,7 +4,7 @@
 
 BotHunter AI follows clean architecture with clear separation of concerns.
 
-**Текущая версия:** v1.2 — Admin Actions & Feedback Loop MVP.
+**Текущая версия:** v1.3 — Reputation & Learning Engine.
 
 ## Layers
 
@@ -26,6 +26,7 @@ Infrastructure →  database/, repositories/, config/, ai/, utils/
 | `rules/`    | Rule Engine (profile scoring)           |
 | `features/` | Feature extraction (`FeatureSet`)       |
 | `risk/`     | Risk Profile (`RiskProfileBuilder`)     |
+| `reputation/` | Reputation Engine (`ReputationService`) |
 | `models/`   | SQLAlchemy ORM entities                 |
 | `repositories/` | Data access layer (Generic Repository) |
 | `schemas/`  | Pydantic request/response models        |
@@ -45,7 +46,8 @@ Infrastructure →  database/, repositories/, config/, ai/, utils/
 | `TelegramUser` | Telegram-пользователь, проходивший проверку |
 | `JoinRequest` | Заявка на вступление |
 | `AIAnalysis` | Результат AI-анализа |
-| `Reputation` | Репутация Telegram-пользователя |
+| `Reputation` | Репутация Telegram-пользователя (`trust_score`) |
+| `ReputationHistory` | История изменений trust score (v1.3) |
 | `Blacklist` | Чёрный список |
 | `Whitelist` | Белый список |
 | `AuditLog` | Аудит действий |
@@ -71,6 +73,25 @@ Infrastructure →  database/, repositories/, config/, ai/, utils/
 - Ошибки сохраняются в `channel_connection_errors`.
 
 Подробности: [docs/channel_registration.md](channel_registration.md).
+
+## Admin Dashboard (v1.3)
+
+- Trust Score на list/detail (цветовые бейджи: 80–100 зелёный, 40–79 жёлтый, 0–39 красный).
+- Карточка **Average Trust Score** на главной.
+- Секция **Reputation History** на странице заявки.
+- REST API: `GET /api/v1/admin/reputation/{telegram_user_id}`.
+
+Подробности: [docs/reputation.md](reputation.md), [docs/dashboard.md](dashboard.md).
+
+## Reputation Engine (v1.3)
+
+- `ReputationEngine` + `ReputationService` — расчёт `trust_score` (0–100, default 50).
+- Таблица `reputation_history` — audit trail изменений.
+- Join pipeline: trust ≥ 90 → auto APPROVED; trust ≤ 10 → auto REJECTED (без Rule Engine и AI).
+- Admin actions обновляют репутацию (+5 approve, −10 reject, whitelist 100, blacklist 0).
+- `RiskProfile.trust_score` передаётся в AI context (алгоритм builder не меняется).
+
+Подробности: [docs/reputation.md](reputation.md).
 
 ## Admin Dashboard (v1.2)
 
@@ -113,8 +134,8 @@ Infrastructure →  database/, repositories/, config/, ai/, utils/
 
 ## Risk Profile (v0.8)
 
-- `RiskProfileBuilder.build(FeatureSet, RuleEngineResult)` → `RiskProfile`.
-- Поля: `risk_level`, `confidence`, `main_reason`, `signals`, `summary`.
+- `RiskProfileBuilder.build(FeatureSet, RuleEngineResult, trust_score=...)` → `RiskProfile`.
+- Поля: `risk_level`, `confidence`, `main_reason`, `signals`, `summary`, `trust_score` (v1.3).
 
 Подробности: [docs/risk_profile.md](risk_profile.md).
 

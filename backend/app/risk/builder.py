@@ -36,7 +36,13 @@ class RiskProfileBuilder:
     def __init__(self, thresholds: DecisionThresholds | None = None) -> None:
         self._thresholds = thresholds or get_decision_thresholds()
 
-    def build(self, features: FeatureSet, rule_result: RuleEngineResult) -> RiskProfile:
+    def build(
+        self,
+        features: FeatureSet,
+        rule_result: RuleEngineResult,
+        *,
+        trust_score: float | None = None,
+    ) -> RiskProfile:
         signals = self._collect_signals(features)
         risk_level = self._resolve_risk_level(rule_result.rule_score)
         confidence = self._calculate_confidence(rule_result.rule_score, signals)
@@ -49,6 +55,7 @@ class RiskProfileBuilder:
             main_reason=main_reason,
             signals=signals,
             summary=summary,
+            trust_score=trust_score,
         )
 
     def _collect_signals(self, features: FeatureSet) -> list[str]:

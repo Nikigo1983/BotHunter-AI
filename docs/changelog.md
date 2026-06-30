@@ -1,5 +1,30 @@
 # BotHunter AI — Changelog
 
+## [1.3.0] — 2026-06-30
+
+### Added
+
+- **Reputation Engine** (`app/reputation/`): `ReputationEngine`, `ReputationService`.
+- `trust_score` (0–100, default 50) в `reputations.reputation_score`.
+- Таблица `reputation_history` — audit trail изменений репутации.
+- Join pipeline: trust ≥ 90 → auto APPROVED; trust ≤ 10 → auto REJECTED (без Rule Engine и AI).
+- Admin actions обновляют репутацию: Approve +5, Reject −10, Whitelist 100, Blacklist 0.
+- `RiskProfile.trust_score` — поле для будущего учёта AI (builder algorithm unchanged).
+- Dashboard: колонка Trust, карточка Avg Trust, Trust Score на detail, Reputation History.
+- REST API: `GET /api/v1/admin/reputation/{telegram_user_id}` (current_score, history, trend).
+- Trend: UP / DOWN / STABLE по последним изменениям.
+- Документация: `docs/reputation.md`, обновлены architecture, dashboard, join_request_processing.
+- Unit + integration tests для reputation, auto approve/reject, dashboard, API.
+
+### Not changed (by design)
+
+- OpenAI / AI Layer algorithm
+- Rule Engine
+- Feature Extraction
+- AI Feedback table/logic
+
+---
+
 ## [1.2.0] — 2026-06-30
 
 ### Added

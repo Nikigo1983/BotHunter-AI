@@ -7,6 +7,7 @@ from app.models.enums import AnalysisDecision, JoinRequestStatus
 from app.models.join_request import JoinRequest
 from app.models.manual_review import AdminAction, ManualReview
 from app.models.reputation import Reputation
+from app.models.reputation_history import ReputationHistory
 from app.models.telegram_bot import TelegramBot
 from app.models.telegram_channel import TelegramChannel
 from app.models.telegram_user import TelegramUser
@@ -25,6 +26,7 @@ __all__ = [
     "JoinRequestStatus",
     "ManualReview",
     "Reputation",
+    "ReputationHistory",
     "TelegramBot",
     "TelegramChannel",
     "TelegramUser",

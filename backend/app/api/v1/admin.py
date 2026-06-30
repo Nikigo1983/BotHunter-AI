@@ -13,6 +13,8 @@ from app.schemas.admin_api import (
     JoinRequestDetailResponse,
     JoinRequestListItemResponse,
     JoinRequestListResponse,
+    ReputationDetailResponse,
+    ReputationHistoryEntryResponse,
     RiskProfileResponse,
     RuleInfoResponse,
     UserInfoResponse,
@@ -62,6 +64,7 @@ async def list_join_requests(
                 final_score=item.final_score,
                 decision=item.decision.value if item.decision else None,
                 status=item.status.value,
+                trust_score=item.trust_score,
             )
             for item in result.items
         ],
@@ -104,6 +107,7 @@ async def get_join_request_detail(
             signals=detail.risk_profile.signals,
             summary=detail.risk_profile.summary,
             main_reason=detail.risk_profile.main_reason,
+            trust_score=detail.risk_profile.trust_score,
         ),
         ai=AIInfoResponse(
             ai_status=detail.ai.ai_status,
@@ -133,6 +137,31 @@ async def get_statistics(
         pending=stats.pending,
         avg_rule_score=stats.avg_rule_score,
         avg_ai_score=stats.avg_ai_score,
+        avg_trust_score=stats.avg_trust_score,
+    )
+
+
+@router.get("/reputation/{telegram_user_id}", response_model=ReputationDetailResponse)
+async def get_reputation_detail(
+    telegram_user_id: int,
+    service: AdminDashboardService = Depends(get_admin_service),
+) -> ReputationDetailResponse:
+    detail = await service.get_reputation_detail(telegram_user_id)
+    if detail is None:
+        raise HTTPException(status_code=404, detail="Telegram user not found")
+    return ReputationDetailResponse(
+        current_score=detail["current_score"],
+        history=[
+            ReputationHistoryEntryResponse(
+                created_at=item.created_at,
+                old_score=item.old_score,
+                new_score=item.new_score,
+                reason=item.reason.value,
+                actor=item.actor,
+            )
+            for item in detail["history"]
+        ],
+        trend=detail["trend"].value,
     )
 
 

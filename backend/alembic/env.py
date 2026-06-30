@@ -17,6 +17,7 @@ from app.models import (  # noqa: F401
     JoinRequest,
     ManualReview,
     Reputation,
+    ReputationHistory,
     TelegramBot,
     TelegramChannel,
     TelegramUser,

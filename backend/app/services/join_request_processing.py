@@ -21,6 +21,8 @@ from app.repositories.deps import (
     get_whitelist_repository,
 )
 from app.features import FeatureExtractor
+from app.reputation import ReputationEngine
+from app.reputation.service import ReputationService
 from app.risk import RiskProfile, RiskProfileBuilder
 from app.risk.enums import RiskLevel
 from app.rules.engine import RuleEngine, RuleEngineResult
@@ -67,6 +69,7 @@ class JoinRequestProcessingService:
         self._analysis_repo = get_ai_analysis_repository(session)
         self._whitelist_repo = get_whitelist_repository(session)
         self._blacklist_repo = get_blacklist_repository(session)
+        self._reputation_service = ReputationService(session)
 
     async def process(self, event: ChatJoinRequest) -> JoinRequestProcessingResult | None:
         if event.from_user is None:
@@ -110,9 +113,36 @@ class JoinRequestProcessingService:
                 explanation="blacklist_match",
             )
 
+        trust_score = await self._reputation_service.get_score(telegram_user.id)
+        if ReputationEngine.should_auto_approve(trust_score):
+            return await self._process_list_match(
+                event=event,
+                channel=channel,
+                telegram_user=telegram_user,
+                join_request=join_request,
+                decision=AnalysisDecision.APPROVED,
+                explanation="reputation_auto_approve",
+                trust_score=trust_score,
+            )
+
+        if ReputationEngine.should_auto_reject(trust_score):
+            return await self._process_list_match(
+                event=event,
+                channel=channel,
+                telegram_user=telegram_user,
+                join_request=join_request,
+                decision=AnalysisDecision.REJECTED,
+                explanation="reputation_auto_reject",
+                trust_score=trust_score,
+            )
+
         features = self._feature_extractor.extract(telegram_user)
         rule_result = self._rule_engine.evaluate(features)
-        risk_profile = self._risk_profile_builder.build(features, rule_result)
+        risk_profile = self._risk_profile_builder.build(
+            features,
+            rule_result,
+            trust_score=trust_score,
+        )
         initial_decision = self._decision_engine.decide(rule_result.rule_score)
 
         ai_service_result: AIServiceResult | None = None
@@ -177,9 +207,12 @@ class JoinRequestProcessingService:
         join_request: JoinRequest,
         decision: AnalysisDecision,
         explanation: str,
+        trust_score: float | None = None,
     ) -> JoinRequestProcessingResult:
         assert event.from_user is not None
 
+        if trust_score is None:
+            trust_score = await self._reputation_service.get_score(telegram_user.id)
         analysis = await self._analysis_repo.create(
             AIAnalysis(
                 join_request_id=join_request.id,
@@ -207,6 +240,7 @@ class JoinRequestProcessingService:
             signals=[],
             summary=explanation,
             main_reason=explanation,
+            trust_score=trust_score,
         )
 
         self._log_processing(

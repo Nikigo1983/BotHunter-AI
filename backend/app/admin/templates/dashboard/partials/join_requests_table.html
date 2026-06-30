@@ -10,6 +10,7 @@
                 <th>Rule Score</th>
                 <th>AI Score</th>
                 <th>Final Score</th>
+                <th>Trust</th>
                 <th>Decision</th>
                 <th>Status</th>
                 <th>Action</th>
@@ -28,6 +29,7 @@
                 <td>{{ item.rule_score if item.rule_score is not none else "—" }}</td>
                 <td>{{ item.ai_score if item.ai_score is not none else "—" }}</td>
                 <td>{{ item.final_score if item.final_score is not none else "—" }}</td>
+                <td><span class="badge text-bg-{{ trust_badge_class(item.trust_score) }}">{{ "%.0f"|format(item.trust_score) }}</span></td>
                 <td>
                     {% if item.decision %}
                     <span class="badge text-bg-{{ decision_badge_class(item.decision.value) }}">{{ item.decision.value }}</span>
@@ -37,7 +39,7 @@
                 <td><a class="btn btn-sm btn-outline-primary" href="/admin/join-request/{{ item.id }}">Open</a></td>
             </tr>
             {% else %}
-            <tr><td colspan="10" class="text-center text-muted py-4">Заявок пока нет</td></tr>
+            <tr><td colspan="11" class="text-center text-muted py-4">Заявок пока нет</td></tr>
             {% endfor %}
             </tbody>
         </table>

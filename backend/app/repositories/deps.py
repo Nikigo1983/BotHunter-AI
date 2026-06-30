@@ -12,6 +12,7 @@ from app.repositories.channel_connection_error import ChannelConnectionErrorRepo
 from app.repositories.join_request import JoinRequestRepository
 from app.repositories.manual_review import ManualReviewRepository
 from app.repositories.reputation import ReputationRepository
+from app.repositories.reputation_history import ReputationHistoryRepository
 from app.repositories.telegram_bot import TelegramBotRepository
 from app.repositories.telegram_channel import TelegramChannelRepository
 from app.repositories.telegram_user import TelegramUserRepository
@@ -61,6 +62,10 @@ def get_blacklist_repository(session: AsyncSession) -> BlacklistRepository:
 
 def get_whitelist_repository(session: AsyncSession) -> WhitelistRepository:
     return WhitelistRepository(session)
+
+
+def get_reputation_history_repository(session: AsyncSession) -> ReputationHistoryRepository:
+    return ReputationHistoryRepository(session)
 
 
 def get_reputation_repository(session: AsyncSession) -> ReputationRepository:
