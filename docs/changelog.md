@@ -1,5 +1,25 @@
 # BotHunter AI — Changelog
 
+## [1.5.0] — 2026-06-30
+
+### Added
+
+- **Explainable AI** — расширенный JSON-ответ GPT: `risk_score`, `confidence`, `reason`, `recommended_action`, `positive_signals`, `negative_signals`, `short_summary`.
+- Сохранение explainable-полей в существующем `ai_analyses.explanation` → `ai_result` (без новых таблиц и миграций).
+- Dashboard detail: блок **Explainable AI** — резюме, индикатор уверенности, «Почему принято такое решение», цветные positive/negative signals.
+- Обратная совместимость: legacy `signals` отображаются как negative factors.
+- `ExplainableAIDTO` и маппинг в `AdminDashboardService`.
+- Обновлены OpenRouter/OpenAI/Mock providers и prompt instructions (ответ на русском, где возможно).
+
+### Not changed (by design)
+
+- Rule Engine
+- Database models / migrations
+- Decision Engine business logic
+- Reputation Engine
+
+---
+
 ## [1.4.0] — 2026-06-30
 
 ### Added

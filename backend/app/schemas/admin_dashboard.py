@@ -72,12 +72,27 @@ class RiskProfileDTO:
 
 
 @dataclass(slots=True)
+class ExplainableAIDTO:
+    risk_score: float | None
+    decision: str | None
+    confidence: float | None
+    reason: str | None
+    recommended_action: str | None
+    positive_signals: list[str]
+    negative_signals: list[str]
+    short_summary: str | None
+    provider: str | None = None
+    model: str | None = None
+
+
+@dataclass(slots=True)
 class AIInfoDTO:
     ai_status: str | None
     ai_score: float | None
     decision: AnalysisDecision | None
     explanation: str | None
     ai_result: dict[str, Any] | None
+    explainable: ExplainableAIDTO | None = None
 
 
 @dataclass(slots=True)

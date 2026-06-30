@@ -93,7 +93,17 @@ async def seed_join_request(
                         "summary": "Test summary",
                         "main_reason": "No photo",
                     },
-                    "ai_result": {"ai_score": 52, "decision": "ManualReview"},
+                    "ai_result": {
+                        "ai_score": 52,
+                        "decision": "ManualReview",
+                        "confidence": 0.82,
+                        "reason": "Пользователь выглядит обычным, но отсутствует фото профиля.",
+                        "recommended_action": "Оставить на ручную проверку.",
+                        "positive_signals": ["нет подозрительных слов"],
+                        "negative_signals": ["нет фото"],
+                        "short_summary": "Низкий–средний риск.",
+                        "provider": "mock",
+                    },
                     "ai_status": "SUCCESS",
                 },
                 ensure_ascii=False,
@@ -219,6 +229,10 @@ async def test_admin_dashboard_service_detail(session: AsyncSession) -> None:
     assert detail.rules.rule_score == 45.0
     assert detail.risk_profile.risk_level == "MEDIUM"
     assert detail.ai.ai_status == "SUCCESS"
+    assert detail.ai.explainable is not None
+    assert detail.ai.explainable.reason
+    assert detail.ai.explainable.positive_signals
+    assert detail.ai.explainable.negative_signals
     assert "profile" in detail.feature_set
 
 

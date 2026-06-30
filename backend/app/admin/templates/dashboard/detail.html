@@ -124,78 +124,143 @@
 
     <div class="col-lg-6">
         <div class="card shadow-sm mb-4">
-            <div class="card-header fw-semibold">AI Explanation</div>
+            <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+                <span>Explainable AI</span>
+                {% if detail.ai.ai_status %}
+                <span class="badge text-bg-light text-dark border">{{ format_ai_status(detail.ai.ai_status) }}</span>
+                {% endif %}
+            </div>
             <div class="card-body">
-                <div class="explanation-section">
-                    <div class="explanation-section-title">Rule Engine</div>
-                    {% if detail.rules.triggered_rules %}
-                    <ul class="list-unstyled mb-0">
-                        {% for rule in detail.rules.triggered_rules %}
-                        <li class="rule-item mb-1">
-                            <span class="check">&#10003;</span>{{ rule.rule }} <span class="text-muted">(+{{ rule.score }})</span>
-                        </li>
-                        {% endfor %}
-                    </ul>
-                    {% else %}
-                    <div class="text-muted">Правила не сработали</div>
+                {% set exp = detail.ai.explainable %}
+                {% if exp and (exp.reason or exp.short_summary or detail.ai.ai_status == 'SUCCESS' or detail.ai.ai_status == 'FALLBACK') %}
+                <div class="explain-hero mb-3">
+                    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+                        <div>
+                            {% if exp.short_summary %}
+                            <div class="explain-summary">{{ exp.short_summary }}</div>
+                            {% endif %}
+                            {% if exp.risk_score is not none %}
+                            <div class="text-muted small mt-1">AI Risk Score: <strong>{{ "%.0f"|format(exp.risk_score) }}</strong> / 100</div>
+                            {% endif %}
+                        </div>
+                        {% if exp.decision %}
+                        <span class="badge text-bg-{{ decision_badge_class(exp.decision) }} fs-6">
+                            {{ format_decision_label(exp.decision) }}
+                        </span>
+                        {% endif %}
+                    </div>
+
+                    {% if exp.confidence is not none %}
+                    <div class="mb-1 d-flex justify-content-between small text-muted">
+                        <span>Уверенность AI</span>
+                        <span><strong>{{ confidence_percent(exp.confidence) }}%</strong></span>
+                    </div>
+                    <div class="confidence-track mb-3">
+                        <div class="confidence-fill bg-{{ confidence_bar_class(exp.confidence) }}"
+                             style="width: {{ confidence_percent(exp.confidence) }}%;"></div>
+                    </div>
+                    {% endif %}
+
+                    {% if exp.recommended_action %}
+                    <div class="small text-muted mb-0">
+                        Рекомендация: <span class="text-dark fw-medium">{{ exp.recommended_action }}</span>
+                    </div>
                     {% endif %}
                 </div>
 
-                <div class="explanation-section">
-                    <div class="explanation-section-title">Risk</div>
-                    <dl class="row mb-0 small">
-                        <dt class="col-sm-4">Level</dt>
-                        <dd class="col-sm-8">
-                            {% if detail.risk_profile.risk_level %}
-                            <span class="badge text-bg-secondary">{{ detail.risk_profile.risk_level }}</span>
-                            {% else %}—{% endif %}
-                        </dd>
-                        <dt class="col-sm-4">Confidence</dt>
-                        <dd class="col-sm-8">{{ detail.risk_profile.confidence if detail.risk_profile.confidence is not none else "—" }}</dd>
-                        <dt class="col-sm-4">Signals</dt>
-                        <dd class="col-sm-8">
-                            {% if detail.risk_profile.signals %}
-                            {% for signal in detail.risk_profile.signals %}
-                            <span class="badge text-bg-light text-dark border me-1">{{ signal }}</span>
-                            {% endfor %}
-                            {% else %}—{% endif %}
-                        </dd>
-                        <dt class="col-sm-4">Summary</dt>
-                        <dd class="col-sm-8">{{ detail.risk_profile.summary or "—" }}</dd>
-                        <dt class="col-sm-4">Trust Score</dt>
-                        <dd class="col-sm-8"><span class="badge text-bg-{{ trust_badge_class(detail.trust_score) }}">{{ "%.0f"|format(detail.trust_score) }} / 100</span></dd>
-                        {% if detail.risk_profile.main_reason %}
-                        <dt class="col-sm-4">Main Reason</dt>
-                        <dd class="col-sm-8">{{ detail.risk_profile.main_reason }}</dd>
-                        {% endif %}
-                    </dl>
+                {% if exp.reason %}
+                <div class="why-block mb-3">
+                    <div class="explanation-section-title mb-2">Почему принято такое решение</div>
+                    <p class="mb-0">{{ exp.reason }}</p>
                 </div>
+                {% endif %}
 
-                <div class="explanation-section">
-                    <div class="explanation-section-title">AI</div>
-                    <dl class="row mb-0 small">
-                        <dt class="col-sm-4">Decision</dt>
-                        <dd class="col-sm-8">
-                            {% if detail.ai.ai_result and detail.ai.ai_result.decision %}
-                            {{ detail.ai.ai_result.decision }}
-                            {% elif detail.ai.decision %}
-                            {{ detail.ai.decision.value }}
-                            {% else %}—{% endif %}
-                        </dd>
-                        <dt class="col-sm-4">Reason</dt>
-                        <dd class="col-sm-8">
-                            {% if detail.ai.ai_result and detail.ai.ai_result.reason %}
-                            {{ detail.ai.ai_result.reason }}
-                            {% else %}—{% endif %}
-                        </dd>
-                        <dt class="col-sm-4">Status</dt>
-                        <dd class="col-sm-8">{{ format_ai_status(detail.ai.ai_status) }}</dd>
-                        {% if detail.ai.ai_result and detail.ai.ai_result.provider %}
-                        <dt class="col-sm-4">Provider</dt>
-                        <dd class="col-sm-8">{{ detail.ai.ai_result.provider }}</dd>
-                        {% endif %}
-                    </dl>
+                {% if exp.positive_signals or exp.negative_signals %}
+                <div class="row g-3 mb-3">
+                    {% if exp.positive_signals %}
+                    <div class="col-md-6">
+                        <div class="explanation-section-title">Положительные факторы</div>
+                        <div>
+                            {% for signal in exp.positive_signals %}
+                            <span class="signal-chip signal-positive">&#10003; {{ signal }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if exp.negative_signals %}
+                    <div class="col-md-6">
+                        <div class="explanation-section-title">Отрицательные факторы</div>
+                        <div>
+                            {% for signal in exp.negative_signals %}
+                            <span class="signal-chip signal-negative">&#10007; {{ signal }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
+                {% endif %}
+
+                {% if exp.provider %}
+                <div class="small text-muted">
+                    Provider: {{ exp.provider }}{% if exp.model %} · {{ exp.model }}{% endif %}
+                </div>
+                {% endif %}
+
+                {% elif detail.ai.ai_status == 'SKIPPED' %}
+                <div class="text-muted">AI не вызывался — решение принято Rule Engine или списками.</div>
+                {% elif detail.ai.ai_status in ('AI_UNAVAILABLE', 'FAILED') %}
+                <div class="alert alert-warning mb-0">AI недоступен. Решение принято на основе Rule Engine.</div>
+                {% else %}
+                <div class="text-muted">Explainable AI данные отсутствуют для этой заявки.</div>
+                {% endif %}
+
+                <details class="mt-3">
+                    <summary class="text-muted small" style="cursor: pointer;">Rule Engine и Risk Profile</summary>
+                    <div class="explanation-section mt-3">
+                        <div class="explanation-section-title">Rule Engine</div>
+                        {% if detail.rules.triggered_rules %}
+                        <ul class="list-unstyled mb-0">
+                            {% for rule in detail.rules.triggered_rules %}
+                            <li class="rule-item mb-1">
+                                <span class="check">&#10003;</span>{{ rule.rule }} <span class="text-muted">(+{{ rule.score }})</span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% else %}
+                        <div class="text-muted">Правила не сработали</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="explanation-section">
+                        <div class="explanation-section-title">Risk Profile</div>
+                        <dl class="row mb-0 small">
+                            <dt class="col-sm-4">Level</dt>
+                            <dd class="col-sm-8">
+                                {% if detail.risk_profile.risk_level %}
+                                <span class="badge text-bg-secondary">{{ detail.risk_profile.risk_level }}</span>
+                                {% else %}—{% endif %}
+                            </dd>
+                            <dt class="col-sm-4">Confidence</dt>
+                            <dd class="col-sm-8">{{ detail.risk_profile.confidence if detail.risk_profile.confidence is not none else "—" }}</dd>
+                            <dt class="col-sm-4">Signals</dt>
+                            <dd class="col-sm-8">
+                                {% if detail.risk_profile.signals %}
+                                {% for signal in detail.risk_profile.signals %}
+                                <span class="badge text-bg-light text-dark border me-1">{{ signal }}</span>
+                                {% endfor %}
+                                {% else %}—{% endif %}
+                            </dd>
+                            <dt class="col-sm-4">Summary</dt>
+                            <dd class="col-sm-8">{{ detail.risk_profile.summary or "—" }}</dd>
+                            <dt class="col-sm-4">Trust Score</dt>
+                            <dd class="col-sm-8"><span class="badge text-bg-{{ trust_badge_class(detail.trust_score) }}">{{ "%.0f"|format(detail.trust_score) }} / 100</span></dd>
+                            {% if detail.risk_profile.main_reason %}
+                            <dt class="col-sm-4">Main Reason</dt>
+                            <dd class="col-sm-8">{{ detail.risk_profile.main_reason }}</dd>
+                            {% endif %}
+                        </dl>
+                    </div>
+                </details>
             </div>
         </div>
 

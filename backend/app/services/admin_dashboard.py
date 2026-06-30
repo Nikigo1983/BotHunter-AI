@@ -22,6 +22,7 @@ from app.schemas.admin_dashboard import (
     AIFeedbackItemDTO,
     AIInfoDTO,
     DashboardStatisticsDTO,
+    ExplainableAIDTO,
     HistoryDTO,
     JoinRequestDetailDTO,
     JoinRequestListItemDTO,
@@ -147,6 +148,12 @@ class AdminDashboardService:
                 decision=row.analysis.decision if row.analysis else None,
                 explanation=row.analysis.explanation if row.analysis else None,
                 ai_result=ai_result,
+                explainable=self._build_explainable(
+                    ai_result=ai_result,
+                    ai_score=row.analysis.ai_score if row.analysis else None,
+                    decision=row.analysis.decision.value if row.analysis and row.analysis.decision else None,
+                    ai_status=explanation_payload.get("ai_status"),
+                ),
             ),
             history=HistoryDTO(
                 created_at=row.join_request.created_at,
@@ -250,6 +257,40 @@ class AdminDashboardService:
             is_whitelisted=whitelisted,
             is_blacklisted=blacklisted,
             trust_score=trust_score,
+        )
+
+    @staticmethod
+    def _build_explainable(
+        *,
+        ai_result: dict[str, Any] | None,
+        ai_score: float | None,
+        decision: str | None,
+        ai_status: str | None,
+    ) -> ExplainableAIDTO | None:
+        if ai_result is None and ai_score is None and decision is None:
+            return None
+
+        payload = ai_result or {}
+        positive_signals = list(payload.get("positive_signals") or [])
+        negative_signals = list(payload.get("negative_signals") or [])
+        legacy_signals = payload.get("signals") or []
+        if legacy_signals and not positive_signals and not negative_signals:
+            negative_signals = list(legacy_signals)
+
+        resolved_decision = payload.get("decision") or decision
+        resolved_score = payload.get("ai_score", payload.get("risk_score", ai_score))
+
+        return ExplainableAIDTO(
+            risk_score=float(resolved_score) if resolved_score is not None else None,
+            decision=str(resolved_decision) if resolved_decision is not None else None,
+            confidence=payload.get("confidence"),
+            reason=payload.get("reason"),
+            recommended_action=payload.get("recommended_action"),
+            positive_signals=positive_signals,
+            negative_signals=negative_signals,
+            short_summary=payload.get("short_summary"),
+            provider=payload.get("provider"),
+            model=payload.get("model"),
         )
 
     @staticmethod

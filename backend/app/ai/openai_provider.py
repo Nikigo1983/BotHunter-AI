@@ -1,22 +1,14 @@
 import time
-from datetime import UTC, datetime
 
 from openai import APIConnectionError, APITimeoutError, OpenAI, OpenAIError, RateLimitError
 
 from app.ai.exceptions import AIProviderError, AITimeoutError
 from app.ai.prompt_builder import PromptBuilder
 from app.ai.provider import AIProvider
-from app.ai.result import AIAnalysisResult
+from app.ai.result import AIAnalysisResult, build_analysis_result
 from app.ai.schemas import StructuredAnalysisOutput, structured_output_json_schema
 from app.config import get_settings
-from app.models.enums import AnalysisDecision
 from app.risk.profile import RiskProfile
-
-DECISION_MAP = {
-    "Approved": AnalysisDecision.APPROVED,
-    "ManualReview": AnalysisDecision.MANUAL_REVIEW,
-    "Rejected": AnalysisDecision.REJECTED,
-}
 
 
 class OpenAIProvider(AIProvider):
@@ -81,24 +73,20 @@ class OpenAIProvider(AIProvider):
         except ValueError as exc:
             raise AIProviderError(f"Invalid structured output: {exc}") from exc
 
-        if parsed.decision not in DECISION_MAP:
-            raise AIProviderError(f"Unknown decision value: {parsed.decision}")
-
         usage = response.usage
         prompt_tokens = usage.prompt_tokens if usage else 0
         completion_tokens = usage.completion_tokens if usage else 0
         total_tokens = usage.total_tokens if usage else prompt_tokens + completion_tokens
 
-        return AIAnalysisResult(
-            ai_score=parsed.ai_score,
-            confidence=round(parsed.confidence, 2),
-            decision=DECISION_MAP[parsed.decision],
-            reason=parsed.reason,
-            provider=self.name,
-            response_time_ms=max(elapsed_ms, 1),
-            prompt_tokens=prompt_tokens,
-            completion_tokens=completion_tokens,
-            total_tokens=total_tokens,
-            model=self._model,
-            created_at=datetime.now(UTC),
-        )
+        try:
+            return build_analysis_result(
+                parsed,
+                provider=self.name,
+                model=self._model,
+                response_time_ms=elapsed_ms,
+                prompt_tokens=prompt_tokens,
+                completion_tokens=completion_tokens,
+                total_tokens=total_tokens,
+            )
+        except ValueError as exc:
+            raise AIProviderError(str(exc)) from exc

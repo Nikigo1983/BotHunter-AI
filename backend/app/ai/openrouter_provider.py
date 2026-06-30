@@ -1,34 +1,32 @@
 import json
 import re
 import time
-from datetime import UTC, datetime
 
 import httpx
 
 from app.ai.exceptions import AIProviderError, AITimeoutError
 from app.ai.prompt_builder import Prompt, PromptBuilder
 from app.ai.provider import AIProvider
-from app.ai.result import AIAnalysisResult
+from app.ai.result import AIAnalysisResult, build_analysis_result
 from app.ai.schemas import StructuredAnalysisOutput
 from app.config import get_settings
-from app.models.enums import AnalysisDecision
 from app.risk.profile import RiskProfile
 from app.utils.logging import get_logger
 
 logger = get_logger(__name__)
 
-DECISION_MAP = {
-    "Approved": AnalysisDecision.APPROVED,
-    "ManualReview": AnalysisDecision.MANUAL_REVIEW,
-    "Rejected": AnalysisDecision.REJECTED,
-}
-
 JSON_OUTPUT_INSTRUCTION = (
     "Return only one valid JSON object. Do not use markdown, code fences, "
     "or any text outside JSON. Required fields: "
     "risk_score (integer 0-100), confidence (float 0-1), "
-    "decision (Approved|ManualReview|Rejected), reason (string), "
-    "recommended_action (Approve|ManualReview|Reject), signals (array of strings)."
+    "decision (Approved|ManualReview|Rejected), "
+    "reason (string, 1-2 sentences explaining the decision in plain language), "
+    "recommended_action (string, short admin recommendation), "
+    "positive_signals (array of strings, factors that reduce risk), "
+    "negative_signals (array of strings, factors that increase risk), "
+    "short_summary (string, one-line risk summary). "
+    "Write reason, recommended_action, positive_signals, negative_signals, "
+    "and short_summary in Russian when possible."
 )
 
 
@@ -97,27 +95,23 @@ class OpenRouterProvider(AIProvider):
 
         parsed = self._parse_structured_output(content)
 
-        if parsed.decision not in DECISION_MAP:
-            raise AIProviderError(f"Unknown decision value: {parsed.decision}")
-
         usage = data.get("usage") or {}
         prompt_tokens = int(usage.get("prompt_tokens") or 0)
         completion_tokens = int(usage.get("completion_tokens") or 0)
         total_tokens = int(usage.get("total_tokens") or prompt_tokens + completion_tokens)
 
-        return AIAnalysisResult(
-            ai_score=parsed.ai_score,
-            confidence=round(parsed.confidence, 2),
-            decision=DECISION_MAP[parsed.decision],
-            reason=parsed.reason,
-            provider=self.name,
-            response_time_ms=max(elapsed_ms, 1),
-            prompt_tokens=prompt_tokens,
-            completion_tokens=completion_tokens,
-            total_tokens=total_tokens,
-            model=self._model,
-            created_at=datetime.now(UTC),
-        )
+        try:
+            return build_analysis_result(
+                parsed,
+                provider=self.name,
+                model=self._model,
+                response_time_ms=elapsed_ms,
+                prompt_tokens=prompt_tokens,
+                completion_tokens=completion_tokens,
+                total_tokens=total_tokens,
+            )
+        except ValueError as exc:
+            raise AIProviderError(str(exc)) from exc
 
     @staticmethod
     def _build_messages(prompt: Prompt) -> list[dict[str, str]]:

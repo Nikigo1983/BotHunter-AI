@@ -80,10 +80,43 @@ def trust_badge_class(score: float) -> str:
     return "danger"
 
 
+def confidence_bar_class(confidence: float | None) -> str:
+    if confidence is None:
+        return "secondary"
+    if confidence >= 0.75:
+        return "success"
+    if confidence >= 0.5:
+        return "warning"
+    return "danger"
+
+
+def confidence_percent(confidence: float | None) -> int:
+    if confidence is None:
+        return 0
+    return min(100, max(0, round(confidence * 100)))
+
+
+def format_decision_label(decision: str | None) -> str:
+    mapping = {
+        "Approved": "Одобрено",
+        "ManualReview": "Ручная проверка",
+        "Rejected": "Отклонено",
+        "APPROVED": "Одобрено",
+        "MANUAL_REVIEW": "Ручная проверка",
+        "REJECTED": "Отклонено",
+    }
+    if not decision:
+        return "—"
+    return mapping.get(decision, decision)
+
+
 ADMIN_TEMPLATES.env.globals["status_badge_class"] = status_badge_class
 ADMIN_TEMPLATES.env.globals["decision_badge_class"] = decision_badge_class
 ADMIN_TEMPLATES.env.globals["format_ai_status"] = format_ai_status
 ADMIN_TEMPLATES.env.globals["trust_badge_class"] = trust_badge_class
+ADMIN_TEMPLATES.env.globals["confidence_bar_class"] = confidence_bar_class
+ADMIN_TEMPLATES.env.globals["confidence_percent"] = confidence_percent
+ADMIN_TEMPLATES.env.globals["format_decision_label"] = format_decision_label
 ADMIN_TEMPLATES.env.filters["tojson"] = tojson_filter
 
 

@@ -25,11 +25,13 @@ from tests.ai.test_ai_layer import (
 def _valid_ai_json(**overrides: object) -> str:
     payload = {
         "risk_score": 48,
-        "confidence": 0.72,
+        "confidence": 0.82,
         "decision": "ManualReview",
-        "reason": "Moderate risk profile with multiple signals.",
-        "recommended_action": "ManualReview",
-        "signals": ["no_photo"],
+        "reason": "Пользователь выглядит обычным, но отсутствует фото профиля и username.",
+        "recommended_action": "Оставить на ручную проверку.",
+        "positive_signals": ["нет подозрительных слов", "нет крипто-признаков"],
+        "negative_signals": ["нет фото", "нет username"],
+        "short_summary": "Низкий–средний риск.",
     }
     payload.update(overrides)
     return json.dumps(payload)
@@ -62,13 +64,17 @@ def test_structured_output_schema_uses_risk_score_alias() -> None:
     schema = structured_output_json_schema()
     assert "risk_score" in schema["properties"]
     assert "recommended_action" in schema["properties"]
-    assert "signals" in schema["properties"]
+    assert "positive_signals" in schema["properties"]
+    assert "negative_signals" in schema["properties"]
+    assert "short_summary" in schema["properties"]
 
 
 def test_structured_output_accepts_risk_score_field() -> None:
     parsed = StructuredAnalysisOutput.model_validate_json(_valid_ai_json())
     assert parsed.ai_score == 48
-    assert parsed.recommended_action == "ManualReview"
+    assert parsed.recommended_action == "Оставить на ручную проверку."
+    assert parsed.positive_signals == ["нет подозрительных слов", "нет крипто-признаков"]
+    assert parsed.negative_signals == ["нет фото", "нет username"]
 
 
 def test_prompt_builder_includes_extended_fields_without_pii() -> None:
@@ -106,6 +112,9 @@ def test_openrouter_provider_parses_json_object_response(mock_client_cls: MagicM
     assert result.model == "openai/gpt-4.1"
     assert result.decision == AnalysisDecision.MANUAL_REVIEW
     assert result.ai_score == 48
+    assert result.positive_signals
+    assert result.negative_signals
+    assert result.short_summary
     assert result.prompt_tokens == 150
     assert result.completion_tokens == 60
     mock_client_cls.return_value.post.assert_called_once()

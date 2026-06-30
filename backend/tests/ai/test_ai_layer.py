@@ -135,6 +135,9 @@ def test_structured_output_schema_has_required_fields() -> None:
     assert "risk_score" in schema["properties"]
     assert "decision" in schema["properties"]
     assert "recommended_action" in schema["properties"]
+    assert "positive_signals" in schema["properties"]
+    assert "negative_signals" in schema["properties"]
+    assert "short_summary" in schema["properties"]
 
 
 def test_ai_service_skips_approved_and_rejected() -> None:
@@ -236,3 +239,6 @@ def test_integration_mock_provider_through_ai_service() -> None:
     assert isinstance(result.analysis, AIAnalysisResult)
     assert result.analysis.ai_score >= 0
     assert result.analysis.reason
+    assert result.analysis.positive_signals is not None
+    assert result.analysis.negative_signals is not None
+    assert result.analysis.short_summary

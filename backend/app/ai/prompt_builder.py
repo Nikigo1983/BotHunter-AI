@@ -14,6 +14,8 @@ class PromptBuilder:
         "You are a Telegram channel join-request risk analyst. "
         "Analyze the anonymized risk profile and respond strictly in JSON "
         "according to the provided schema. "
+        "Provide an explainable assessment: clear reason, recommended_action, "
+        "positive_signals, negative_signals, and short_summary. "
         "Do not infer or request personal identifiers."
     )
 
