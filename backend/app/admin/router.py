@@ -96,6 +96,36 @@ def confidence_percent(confidence: float | None) -> int:
     return min(100, max(0, round(confidence * 100)))
 
 
+def ai_risk_level(score: float | None) -> str:
+    if score is None:
+        return "unknown"
+    if score < 30:
+        return "low"
+    if score < 70:
+        return "medium"
+    return "high"
+
+
+def ai_risk_level_label(score: float | None) -> str:
+    mapping = {
+        "low": "Низкий риск",
+        "medium": "Средний риск",
+        "high": "Высокий риск",
+        "unknown": "—",
+    }
+    return mapping.get(ai_risk_level(score), "—")
+
+
+def ai_risk_badge_class(score: float | None) -> str:
+    mapping = {
+        "low": "success",
+        "medium": "warning",
+        "high": "danger",
+        "unknown": "secondary",
+    }
+    return mapping.get(ai_risk_level(score), "secondary")
+
+
 def format_decision_label(decision: str | None) -> str:
     mapping = {
         "Approved": "Одобрено",
@@ -117,6 +147,9 @@ ADMIN_TEMPLATES.env.globals["trust_badge_class"] = trust_badge_class
 ADMIN_TEMPLATES.env.globals["confidence_bar_class"] = confidence_bar_class
 ADMIN_TEMPLATES.env.globals["confidence_percent"] = confidence_percent
 ADMIN_TEMPLATES.env.globals["format_decision_label"] = format_decision_label
+ADMIN_TEMPLATES.env.globals["ai_risk_level"] = ai_risk_level
+ADMIN_TEMPLATES.env.globals["ai_risk_level_label"] = ai_risk_level_label
+ADMIN_TEMPLATES.env.globals["ai_risk_badge_class"] = ai_risk_badge_class
 ADMIN_TEMPLATES.env.filters["tojson"] = tojson_filter
 
 

@@ -83,6 +83,8 @@ class ExplainableAIDTO:
     short_summary: str | None
     provider: str | None = None
     model: str | None = None
+    risk_level: str | None = None
+    risk_level_label: str | None = None
 
 
 @dataclass(slots=True)

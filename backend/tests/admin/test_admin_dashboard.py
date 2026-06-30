@@ -231,8 +231,9 @@ async def test_admin_dashboard_service_detail(session: AsyncSession) -> None:
     assert detail.ai.ai_status == "SUCCESS"
     assert detail.ai.explainable is not None
     assert detail.ai.explainable.reason
-    assert detail.ai.explainable.positive_signals
-    assert detail.ai.explainable.negative_signals
+    assert detail.ai.explainable.positive_signals or detail.ai.explainable.negative_signals
+    assert detail.ai.explainable.risk_level == "medium"
+    assert detail.ai.explainable.risk_level_label == "Средний риск"
     assert "profile" in detail.feature_set
 
 

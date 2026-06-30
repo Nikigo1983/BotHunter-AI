@@ -1,5 +1,24 @@
 # BotHunter AI — Changelog
 
+## [1.6.0] — 2026-06-30
+
+### Added
+
+- **Hybrid Explainability** — `HybridExplainabilityBuilder` объединяет системные и AI-сигналы.
+- Deterministic positive signals: фото, username, Premium, репутация ≥ 70, rule score 0.
+- Deterministic negative signals: сработавшие правила, цифры в username, крипто/random username, низкая репутация ≤ 40.
+- Merge с GPT `positive_signals` / `negative_signals` без дубликатов; AI-минусы фильтруются при конфликте с системными плюсами.
+- Цветовая шкала AI Risk Score: 🟢 0–29 · 🟡 30–69 · 🔴 70–100 с маркером и badge.
+- Dashboard: колонки «🟢 Положительные признаки» / «🔴 Факторы риска»; hybrid-сигналы при `AI SKIPPED`.
+
+### Not changed (by design)
+
+- Rule Engine logic
+- Database models / migrations
+- Decision Engine business logic
+
+---
+
 ## [1.5.0] — 2026-06-30
 
 ### Added

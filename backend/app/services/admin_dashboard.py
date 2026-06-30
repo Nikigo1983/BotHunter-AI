@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.features import FeatureExtractor
 from app.models.enums import JoinRequestStatus
+from app.explainability import HybridExplainabilityBuilder
 from app.repositories.admin_dashboard import AdminDashboardRepository, StatusFilter
 from app.repositories.deps import (
     get_admin_dashboard_repository,
@@ -153,6 +154,10 @@ class AdminDashboardService:
                     ai_score=row.analysis.ai_score if row.analysis else None,
                     decision=row.analysis.decision.value if row.analysis and row.analysis.decision else None,
                     ai_status=explanation_payload.get("ai_status"),
+                    feature_set=feature_set,
+                    trust_score=trust_score,
+                    triggered_rules=explanation_payload.get("triggered_rules", []),
+                    rule_score=row.analysis.rule_score if row.analysis else None,
                 ),
             ),
             history=HistoryDTO(
@@ -266,31 +271,49 @@ class AdminDashboardService:
         ai_score: float | None,
         decision: str | None,
         ai_status: str | None,
+        feature_set: dict[str, Any],
+        trust_score: float,
+        triggered_rules: list[dict[str, Any]],
+        rule_score: float | None,
     ) -> ExplainableAIDTO | None:
-        if ai_result is None and ai_score is None and decision is None:
-            return None
-
         payload = ai_result or {}
-        positive_signals = list(payload.get("positive_signals") or [])
-        negative_signals = list(payload.get("negative_signals") or [])
+        ai_positive = list(payload.get("positive_signals") or [])
+        ai_negative = list(payload.get("negative_signals") or [])
         legacy_signals = payload.get("signals") or []
-        if legacy_signals and not positive_signals and not negative_signals:
-            negative_signals = list(legacy_signals)
+        if legacy_signals and not ai_positive and not ai_negative:
+            ai_negative = list(legacy_signals)
+
+        hybrid = HybridExplainabilityBuilder.build(
+            feature_set=feature_set,
+            trust_score=trust_score,
+            triggered_rules=triggered_rules,
+            rule_score=rule_score,
+            ai_positive=ai_positive,
+            ai_negative=ai_negative,
+        )
+
+        has_ai_payload = ai_result is not None or ai_score is not None or decision is not None
+        has_hybrid_signals = bool(hybrid.positive_signals or hybrid.negative_signals)
+        if not has_ai_payload and not has_hybrid_signals:
+            return None
 
         resolved_decision = payload.get("decision") or decision
         resolved_score = payload.get("ai_score", payload.get("risk_score", ai_score))
+        risk_score = float(resolved_score) if resolved_score is not None else None
 
         return ExplainableAIDTO(
-            risk_score=float(resolved_score) if resolved_score is not None else None,
+            risk_score=risk_score,
             decision=str(resolved_decision) if resolved_decision is not None else None,
             confidence=payload.get("confidence"),
             reason=payload.get("reason"),
             recommended_action=payload.get("recommended_action"),
-            positive_signals=positive_signals,
-            negative_signals=negative_signals,
+            positive_signals=hybrid.positive_signals,
+            negative_signals=hybrid.negative_signals,
             short_summary=payload.get("short_summary"),
             provider=payload.get("provider"),
             model=payload.get("model"),
+            risk_level=HybridExplainabilityBuilder.risk_level(risk_score),
+            risk_level_label=HybridExplainabilityBuilder.risk_level_label(risk_score),
         )
 
     @staticmethod
