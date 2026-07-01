@@ -35,10 +35,18 @@ class SimulationResult:
 
 
 class PolicySimulationService:
-    def __init__(self, session: AsyncSession) -> None:
+    def __init__(
+        self,
+        session: AsyncSession,
+        *,
+        organization_id: uuid.UUID | None = None,
+        workspace_id: uuid.UUID | None = None,
+    ) -> None:
         self._session = session
+        self._organization_id = organization_id
+        self._workspace_id = workspace_id
         self._repo = get_policy_repository(session)
-        self._policy_service = PolicyService(session)
+        self._policy_service = PolicyService(session, organization_id=organization_id, workspace_id=workspace_id)
         self._feature_extractor = FeatureExtractor()
 
     async def simulate(self, request: SimulationRequest) -> SimulationResult:
@@ -58,7 +66,11 @@ class PolicySimulationService:
         baseline_decision = baseline_policy.build_decision_engine()
         simulated_decision = simulated_policy.build_decision_engine()
 
-        rows = await self._repo.get_recent_join_cases(limit=request.sample_size)
+        rows = await self._repo.get_recent_join_cases(
+            organization_id=await self._policy_service._resolve_organization_id(),
+            workspace_id=self._workspace_id,
+            limit=request.sample_size,
+        )
         baseline_counts = _empty_counts()
         simulated_counts = _empty_counts()
         for join_request, telegram_user in rows:

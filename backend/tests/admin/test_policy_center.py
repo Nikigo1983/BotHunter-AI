@@ -6,12 +6,19 @@ from app.policy.types import build_default_rule_configs
 from app.repositories.deps import get_policy_repository
 from app.services.policy import PolicyService
 from app.services.policy_simulation import PolicySimulationService, SimulationRequest
+from app.services.tenant_bootstrap import TenantBootstrapService
 from tests.admin.test_investigations import seed_investigation_case
+
+
+async def _policy_service(session: AsyncSession) -> PolicyService:
+    bootstrap = await TenantBootstrapService(session).ensure_default_tenant()
+    assert bootstrap is not None
+    return PolicyService(session, organization_id=bootstrap.organization.id)
 
 
 @pytest.mark.asyncio
 async def test_ensure_initial_policy(session: AsyncSession) -> None:
-    service = PolicyService(session)
+    service = await _policy_service(session)
     await service.ensure_initial_policy()
     policy = await service.get_effective_policy()
     assert policy.version_number == 1
@@ -22,7 +29,7 @@ async def test_ensure_initial_policy(session: AsyncSession) -> None:
 
 @pytest.mark.asyncio
 async def test_update_rule_creates_version(session: AsyncSession) -> None:
-    service = PolicyService(session)
+    service = await _policy_service(session)
     await service.ensure_initial_policy()
     await service.update_rule(
         "NoPhotoRule",
@@ -42,8 +49,10 @@ async def test_update_rule_creates_version(session: AsyncSession) -> None:
 
 @pytest.mark.asyncio
 async def test_simulation_does_not_change_current_policy(session: AsyncSession) -> None:
-    service = PolicyService(session)
-    simulation = PolicySimulationService(session)
+    bootstrap = await TenantBootstrapService(session).ensure_default_tenant()
+    assert bootstrap is not None
+    service = PolicyService(session, organization_id=bootstrap.organization.id)
+    simulation = PolicySimulationService(session, organization_id=bootstrap.organization.id)
     await service.ensure_initial_policy()
     before = await service.get_effective_policy()
     before_score = before.rules["NoPhotoRule"].score
@@ -58,7 +67,7 @@ async def test_simulation_does_not_change_current_policy(session: AsyncSession) 
 
 @pytest.mark.asyncio
 async def test_rollback_restores_snapshot(session: AsyncSession) -> None:
-    service = PolicyService(session)
+    service = await _policy_service(session)
     await service.ensure_initial_policy()
     v1 = await service.get_effective_policy()
     await service.update_rule(
@@ -80,7 +89,7 @@ async def test_rollback_restores_snapshot(session: AsyncSession) -> None:
 
 @pytest.mark.asyncio
 async def test_compare_versions(session: AsyncSession) -> None:
-    service = PolicyService(session)
+    service = await _policy_service(session)
     await service.ensure_initial_policy()
     await service.update_rule(
         "TooManyEmojiRule",
@@ -98,8 +107,8 @@ async def test_compare_versions(session: AsyncSession) -> None:
 
 @pytest.mark.asyncio
 async def test_policies_api_endpoints(session: AsyncSession, admin_client: AsyncClient) -> None:
-    service = PolicyService(session)
-    await service.ensure_initial_policy()
+    await TenantBootstrapService(session).ensure_default_tenant()
+    service = await _policy_service(session)
 
     listing = await admin_client.get("/api/v1/admin/policies")
     assert listing.status_code == 200
@@ -165,7 +174,7 @@ async def test_policies_api_endpoints(session: AsyncSession, admin_client: Async
 
 @pytest.mark.asyncio
 async def test_policies_web_pages(session: AsyncSession, admin_client: AsyncClient, admin_csrf: str) -> None:
-    await PolicyService(session).ensure_initial_policy()
+    await TenantBootstrapService(session).ensure_default_tenant()
 
     index = await admin_client.get("/admin/policies")
     assert index.status_code == 200
@@ -201,8 +210,9 @@ async def test_policies_web_pages(session: AsyncSession, admin_client: AsyncClie
 
 @pytest.mark.asyncio
 async def test_replay_with_policy_version(session: AsyncSession, admin_client: AsyncClient, admin_csrf: str) -> None:
-    service = PolicyService(session)
-    await service.ensure_initial_policy()
+    bootstrap = await TenantBootstrapService(session).ensure_default_tenant()
+    assert bootstrap is not None
+    service = PolicyService(session, organization_id=bootstrap.organization.id)
     join_request = await seed_investigation_case(session, suffix="policy-replay")
 
     await service.update_rule(

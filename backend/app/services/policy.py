@@ -56,17 +56,40 @@ class PolicyComparisonView:
 
 
 class PolicyService:
-    def __init__(self, session: AsyncSession) -> None:
+    def __init__(
+        self,
+        session: AsyncSession,
+        *,
+        organization_id: uuid.UUID | None = None,
+        workspace_id: uuid.UUID | None = None,
+        user_id: uuid.UUID | None = None,
+    ) -> None:
         self._session = session
+        self._organization_id = organization_id
+        self._workspace_id = workspace_id
+        self._user_id = user_id
         self._repo = get_policy_repository(session)
         self._analytics = AnalyticsRepository(session)
         self._audit_repo = get_audit_log_repository(session)
 
-    async def ensure_initial_policy(self) -> None:
-        current = await self._repo.get_current_version()
+    async def _resolve_organization_id(self) -> uuid.UUID:
+        if self._organization_id is not None:
+            return self._organization_id
+        from app.repositories.deps import get_organization_repository
+
+        org = await get_organization_repository(self._session).get_by_slug("default")
+        if org is None:
+            raise RuntimeError("Default organization is not bootstrapped")
+        self._organization_id = org.id
+        return org.id
+
+    async def ensure_initial_policy(self, organization_id: uuid.UUID | None = None) -> None:
+        org_id = organization_id or await self._resolve_organization_id()
+        current = await self._repo.get_current_version(org_id)
         if current is not None:
             return
         await self._repo.create_version_with_snapshots(
+            organization_id=org_id,
             author="system",
             comment="Initial policy from Rule Engine defaults",
             rules=build_default_rule_configs(),
@@ -75,11 +98,14 @@ class PolicyService:
         )
 
     async def get_effective_policy(self, version_id: uuid.UUID | None = None) -> EffectivePolicy:
-        await self.ensure_initial_policy()
+        org_id = await self._resolve_organization_id()
+        await self.ensure_initial_policy(org_id)
         if version_id is not None:
             version = await self._repo.get_by_id(version_id)
+            if version is not None and version.organization_id != org_id:
+                raise ValueError("Policy version belongs to another organization")
         else:
-            version = await self._repo.get_current_version()
+            version = await self._repo.get_current_version(org_id)
         if version is None:
             return EffectivePolicy(
                 version_id=None,
@@ -116,7 +142,7 @@ class PolicyService:
             if positive_signal > 0:
                 recall = round(positive_signal / max(triggered, 1), 4)
                 fnr = round(max(0, triggered - positive_signal) / max(triggered, 1), 4)
-            last_version = await self._repo.find_rule_last_change(rule_key)
+            last_version = await self._repo.find_rule_last_change(await self._resolve_organization_id(), rule_key)
             views.append(
                 RulePolicyView(
                     rule_key=rule_key,
@@ -164,7 +190,9 @@ class PolicyService:
             description=description,
             admin_comment=admin_comment,
         )
+        org_id = await self._resolve_organization_id()
         version = await self._repo.create_version_with_snapshots(
+            organization_id=org_id,
             author=author,
             comment=f"Updated rule {rule_key}",
             rules=rules,
@@ -192,7 +220,9 @@ class PolicyService:
             trust_auto_reject=trust_auto_reject,
             ai_threshold=ai_threshold,
         )
+        org_id = await self._resolve_organization_id()
         version = await self._repo.create_version_with_snapshots(
+            organization_id=org_id,
             author=author,
             comment=comment or "Updated global thresholds",
             rules=current.rules,
@@ -205,9 +235,13 @@ class PolicyService:
         source = await self._repo.get_by_id(version_id)
         if source is None:
             raise ValueError("Policy version not found")
+        if source.organization_id != await self._resolve_organization_id():
+            raise ValueError("Policy version belongs to another organization")
         rules = await self._load_rules_dict(source.id)
         thresholds = await self._load_thresholds(source.id)
+        org_id = await self._resolve_organization_id()
         version = await self._repo.create_version_with_snapshots(
+            organization_id=org_id,
             author=author,
             comment=f"Rollback to policy v{source.version_number}",
             rules=rules,
@@ -222,7 +256,8 @@ class PolicyService:
         return await self._build_effective_policy(version)
 
     async def list_history(self, *, limit: int = 50) -> list[PolicyVersionView]:
-        versions = await self._repo.list_versions(limit=limit)
+        org_id = await self._resolve_organization_id()
+        versions = await self._repo.list_versions(org_id, limit=limit)
         result: list[PolicyVersionView] = []
         for index, version in enumerate(versions):
             changed_rules: list[str] = []
@@ -253,8 +288,9 @@ class PolicyService:
         current_version_id: uuid.UUID | None = None,
         previous_version_id: uuid.UUID | None = None,
     ) -> PolicyComparisonView:
-        await self.ensure_initial_policy()
-        versions = await self._repo.list_versions(limit=2)
+        org_id = await self._resolve_organization_id()
+        await self.ensure_initial_policy(org_id)
+        versions = await self._repo.list_versions(org_id, limit=2)
         if not versions:
             raise ValueError("No policy versions found")
         current = (
@@ -349,6 +385,9 @@ class PolicyService:
         await self._audit_repo.create(
             AuditLog(
                 actor=actor,
+                organization_id=self._organization_id,
+                workspace_id=self._workspace_id,
+                user_id=self._user_id,
                 action=action,
                 entity="policy_version",
                 entity_id=version_id,

@@ -1,4 +1,5 @@
 import json
+import uuid
 from dataclasses import dataclass
 
 from aiogram import Bot
@@ -152,7 +153,7 @@ class JoinRequestProcessingService:
             )
 
         features = self._feature_extractor.extract(telegram_user)
-        rule_engine, decision_engine, risk_profile_builder = await self._resolve_engines()
+        rule_engine, decision_engine, risk_profile_builder = await self._resolve_engines(channel.organization_id)
         rule_result = rule_engine.evaluate(features)
         reputation_history = await self._reputation_service.get_history(telegram_user.id, limit=5)
         history_lines = [
@@ -170,8 +171,9 @@ class JoinRequestProcessingService:
 
         ai_service_result: AIServiceResult | None = None
         if initial_decision == AnalysisDecision.MANUAL_REVIEW:
-            ai_service_result = self._ai_service.analyze(initial_decision, risk_profile)
-            await self._persist_ai_usage(ai_service_result)
+            ai_service = await self._resolve_ai_service(channel.organization_id)
+            ai_service_result = ai_service.analyze(initial_decision, risk_profile)
+            await self._persist_ai_usage(ai_service_result, channel.organization_id)
 
         final_decision = self._resolve_final_decision(initial_decision, ai_service_result)
         ai_score = self._resolve_ai_score(ai_service_result)
@@ -222,16 +224,33 @@ class JoinRequestProcessingService:
             action_taken=action_taken,
         )
 
-    async def _resolve_engines(self):
+    async def _resolve_engines(self, organization_id: uuid.UUID | None):
         if not self._use_policy_engines:
             return self._rule_engine, self._decision_engine, self._risk_profile_builder
         from app.services.policy import PolicyService
 
-        policy = await PolicyService(self._session).get_effective_policy()
+        policy = await PolicyService(
+            self._session,
+            organization_id=organization_id,
+        ).get_effective_policy()
         rule_engine = policy.build_rule_engine()
         decision_engine = policy.build_decision_engine()
         risk_profile_builder = RiskProfileBuilder(thresholds=decision_engine.thresholds)
         return rule_engine, decision_engine, risk_profile_builder
+
+    async def _resolve_ai_service(self, organization_id: uuid.UUID | None) -> AIService:
+        from app.ai.openrouter_provider import OpenRouterProvider
+        from app.config.runtime_overrides import get_runtime_snapshot
+        from app.services.organization import OrganizationSecretsRuntime
+
+        org_key = await OrganizationSecretsRuntime(self._session).resolve_openrouter_api_key(
+            organization_id
+        )
+        if org_key:
+            snapshot = get_runtime_snapshot()
+            provider = OpenRouterProvider(api_key=org_key, model=snapshot.openrouter_model)
+            return AIService(provider=provider)
+        return self._ai_service
 
     async def _process_list_match(
         self,
@@ -430,7 +449,11 @@ class JoinRequestProcessingService:
         }
         return json.dumps(payload, ensure_ascii=False)
 
-    async def _persist_ai_usage(self, ai_service_result: AIServiceResult | None) -> None:
+    async def _persist_ai_usage(
+        self,
+        ai_service_result: AIServiceResult | None,
+        organization_id: uuid.UUID | None = None,
+    ) -> None:
         if ai_service_result is None or ai_service_result.analysis is None:
             return
         if ai_service_result.status not in {AIServiceStatus.SUCCESS, AIServiceStatus.FALLBACK}:
@@ -444,6 +467,7 @@ class JoinRequestProcessingService:
         )
         await self._ai_usage_repo.create(
             AIUsage(
+                organization_id=organization_id,
                 provider=analysis.provider,
                 model=analysis.model,
                 prompt_tokens=analysis.prompt_tokens,

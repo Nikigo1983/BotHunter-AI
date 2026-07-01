@@ -20,6 +20,9 @@ class AuditLog(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
     )
 
     actor: Mapped[str] = mapped_column(String(255), nullable=False)
+    organization_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    workspace_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    user_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
     action: Mapped[str] = mapped_column(String(128), nullable=False)
     entity: Mapped[str] = mapped_column(String(128), nullable=False)
     entity_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)

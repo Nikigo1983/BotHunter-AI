@@ -1,0 +1,86 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Members — Organization{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">Organization Members</h1>
+        <p class="text-muted mb-0">{{ tenant.organization_name if tenant else 'Organization' }}</p>
+    </div>
+</div>
+
+{% if error %}
+<div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+{% if invite %}
+<div class="alert alert-success">
+    Invite created for <strong>{{ invite.email }}</strong>.
+    Share this link: <code>{{ invite.invite_url }}</code>
+</div>
+{% endif %}
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead class="table-light">
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Workspaces</th>
+                        <th>Status</th>
+                        <th>Last login</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for member in members %}
+                    <tr>
+                        <td>{{ member.full_name }}</td>
+                        <td>{{ member.email }}</td>
+                        <td><span class="badge text-bg-secondary">{{ member.role }}</span></td>
+                        <td class="small">{{ member.workspace_names | join(', ') if member.workspace_names else '—' }}</td>
+                        <td>{% if member.is_active %}<span class="badge text-bg-success">Active</span>{% else %}<span class="badge text-bg-secondary">Inactive</span>{% endif %}</td>
+                        <td class="small">{% if member.last_login_at %}{{ member.last_login_at.strftime('%Y-%m-%d %H:%M') }} UTC{% else %}—{% endif %}</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        {% if can_manage_users %}
+        <div class="card shadow-sm">
+            <div class="card-header">Invite User</div>
+            <div class="card-body">
+                <form method="post" action="/admin/organization/members/invite">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" name="email" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Role</label>
+                        <select name="role" class="form-select">
+                            <option value="administrator">Administrator</option>
+                            <option value="moderator" selected>Moderator</option>
+                            <option value="viewer">Viewer</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Workspace</label>
+                        <select name="workspace_id" class="form-select" required>
+                            {% for ws in workspaces %}
+                            <option value="{{ ws.id }}">{{ ws.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Invite User</button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

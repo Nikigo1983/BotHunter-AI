@@ -20,6 +20,7 @@ from app.repositories.deps import (
 from app.services.analytics import AnalyticsService
 from app.reputation.engine import DEFAULT_TRUST_SCORE
 from app.reputation.service import ReputationService
+from app.tenant.context import TenantContext
 from app.schemas.admin_dashboard import (
     AIFeedbackItemDTO,
     AIInfoDTO,
@@ -54,8 +55,10 @@ class AdminDashboardService:
         session: AsyncSession,
         repository: AdminDashboardRepository | None = None,
         feature_extractor: FeatureExtractor | None = None,
+        tenant: TenantContext | None = None,
     ) -> None:
         self._session = session
+        self._tenant = tenant
         self._repository = repository or get_admin_dashboard_repository(session)
         self._feature_extractor = feature_extractor or FeatureExtractor()
         self._manual_review_repo = get_manual_review_repository(session)
@@ -64,6 +67,15 @@ class AdminDashboardService:
         self._blacklist_repo = get_blacklist_repository(session)
         self._reputation_service = ReputationService(session)
         self._reputation_history_repo = get_reputation_history_repository(session)
+
+    async def _tenant_scope(self) -> tuple[uuid.UUID, uuid.UUID]:
+        if self._tenant is not None:
+            return self._tenant.organization_id, self._tenant.workspace_id
+        from app.services.tenant_bootstrap import TenantBootstrapService
+
+        bootstrap = await TenantBootstrapService(self._session).ensure_default_tenant()
+        assert bootstrap is not None
+        return bootstrap.organization.id, bootstrap.workspace.id
 
     async def list_join_requests(
         self,
@@ -75,7 +87,10 @@ class AdminDashboardService:
     ) -> JoinRequestListResultDTO:
         safe_page = max(page, 1)
         offset = (safe_page - 1) * page_size
+        organization_id, workspace_id = await self._tenant_scope()
         result = await self._repository.list_join_requests(
+            organization_id=organization_id,
+            workspace_id=workspace_id,
             status_filter=status_filter,
             search=search,
             offset=offset,
@@ -98,7 +113,12 @@ class AdminDashboardService:
         self,
         join_request_id: uuid.UUID,
     ) -> JoinRequestDetailDTO | None:
-        row = await self._repository.get_join_request(join_request_id)
+        organization_id, workspace_id = await self._tenant_scope()
+        row = await self._repository.get_join_request(
+            join_request_id,
+            organization_id=organization_id,
+            workspace_id=workspace_id,
+        )
         if row is None:
             return None
 

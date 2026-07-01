@@ -25,6 +25,15 @@ from app.repositories.reputation_history import ReputationHistoryRepository
 from app.repositories.system_error import SystemErrorRepository
 from app.repositories.system_notification import SystemNotificationRepository
 from app.repositories.system_setting import SystemSettingRepository
+from app.repositories.organization import (
+    OrganizationInviteRepository,
+    OrganizationMemberRepository,
+    OrganizationRepository,
+    OrganizationSecretRepository,
+    OrganizationUsageRepository,
+    WorkspaceMemberRepository,
+    WorkspaceRepository,
+)
 from app.repositories.policy import PolicyRepository
 from app.repositories.telegram_bot import TelegramBotRepository
 from app.repositories.telegram_channel import TelegramChannelRepository
@@ -135,6 +144,34 @@ def get_dashboard_session_repository(session: AsyncSession) -> DashboardSessionR
 
 def get_policy_repository(session: AsyncSession) -> PolicyRepository:
     return PolicyRepository(session)
+
+
+def get_organization_repository(session: AsyncSession) -> OrganizationRepository:
+    return OrganizationRepository(session)
+
+
+def get_workspace_repository(session: AsyncSession) -> WorkspaceRepository:
+    return WorkspaceRepository(session)
+
+
+def get_organization_member_repository(session: AsyncSession) -> OrganizationMemberRepository:
+    return OrganizationMemberRepository(session)
+
+
+def get_workspace_member_repository(session: AsyncSession) -> WorkspaceMemberRepository:
+    return WorkspaceMemberRepository(session)
+
+
+def get_organization_invite_repository(session: AsyncSession) -> OrganizationInviteRepository:
+    return OrganizationInviteRepository(session)
+
+
+def get_organization_secret_repository(session: AsyncSession) -> OrganizationSecretRepository:
+    return OrganizationSecretRepository(session)
+
+
+def get_organization_usage_repository(session: AsyncSession) -> OrganizationUsageRepository:
+    return OrganizationUsageRepository(session)
 
 
 def get_system_setting_repository(session: AsyncSession) -> SystemSettingRepository:

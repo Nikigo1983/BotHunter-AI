@@ -22,6 +22,8 @@ class TelegramChannel(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
     __table_args__ = (
         UniqueConstraint("telegram_chat_id", name="uq_telegram_channels_telegram_chat_id"),
         Index("ix_telegram_channels_owner_id", "owner_id"),
+        Index("ix_telegram_channels_organization_id", "organization_id"),
+        Index("ix_telegram_channels_workspace_id", "workspace_id"),
         Index("ix_telegram_channels_bot_id", "bot_id"),
         Index("ix_telegram_channels_telegram_chat_id", "telegram_chat_id"),
         Index("ix_telegram_channels_is_active", "is_active"),
@@ -31,6 +33,16 @@ class TelegramChannel(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
         UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
+    )
+    organization_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=True,
+    )
+    workspace_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("workspaces.id", ondelete="CASCADE"),
+        nullable=True,
     )
     bot_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),

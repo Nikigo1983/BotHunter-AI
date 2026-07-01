@@ -23,6 +23,8 @@ from app.services.channel_registration_types import (
     ChannelRegistrationFailure,
     ChannelRegistrationSuccess,
 )
+from app.services.organization import PlanEnforcementService
+from app.services.tenant_bootstrap import TenantBootstrapService
 from app.utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -106,6 +108,24 @@ class ChannelRegistrationService:
         owner = await self._get_or_create_owner(requester)
         platform_bot = await self._get_or_create_platform_bot(owner)
 
+        bootstrap = await TenantBootstrapService(self._session).ensure_default_tenant()
+        if bootstrap is None:
+            return await self._fail(
+                telegram_id=requester.id,
+                channel_id=parsed_channel_id,
+                reason="Не удалось определить организацию для подключения канала.",
+            )
+        try:
+            await PlanEnforcementService(self._session).assert_can_add_channel(
+                bootstrap.organization.id
+            )
+        except ValueError as exc:
+            return await self._fail(
+                telegram_id=requester.id,
+                channel_id=parsed_channel_id,
+                reason=str(exc),
+            )
+
         invite_link = await self._resolve_invite_link(chat)
         channel = await self._channel_repo.create(
             TelegramChannel(
@@ -116,6 +136,8 @@ class ChannelRegistrationService:
                 username=chat.username,
                 invite_link=invite_link,
                 is_active=True,
+                organization_id=bootstrap.organization.id,
+                workspace_id=bootstrap.workspace.id,
             )
         )
         await self._settings_repo.get_or_create(channel.id)

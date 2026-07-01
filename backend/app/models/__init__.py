@@ -14,6 +14,13 @@ from app.models.enums import (
     NotificationLevel,
     SystemErrorSource,
 )
+from app.models.organization import Organization
+from app.models.organization_invite import OrganizationInvite
+from app.models.organization_member import OrganizationMember
+from app.models.organization_secret import OrganizationSecret
+from app.models.organization_usage import OrganizationUsage
+from app.models.workspace import Workspace
+from app.models.workspace_member import WorkspaceMember
 from app.models.join_request import JoinRequest
 from app.models.manual_review import AdminAction, ManualReview
 from app.models.policy_rule_config import PolicyRuleConfig
@@ -44,6 +51,11 @@ __all__ = [
     "DashboardSession",
     "DashboardUser",
     "JoinRequest",
+    "Organization",
+    "OrganizationInvite",
+    "OrganizationMember",
+    "OrganizationSecret",
+    "OrganizationUsage",
     "JoinRequestStatus",
     "ManualReview",
     "PolicyRuleConfig",
@@ -61,4 +73,6 @@ __all__ = [
     "TelegramUser",
     "User",
     "Whitelist",
+    "Workspace",
+    "WorkspaceMember",
 ]

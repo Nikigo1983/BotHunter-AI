@@ -55,19 +55,24 @@ def make_user(suffix: str | None = None) -> User:
 
 @pytest_asyncio.fixture
 async def dashboard_owner(session: AsyncSession) -> DashboardUser:
+    from app.services.tenant_bootstrap import TenantBootstrapService
+
     repo = get_dashboard_user_repository(session)
     existing = await repo.get_by_email("admin@test.local")
     if existing is not None:
-        return existing
-    return await repo.create(
-        DashboardUser(
-            email="admin@test.local",
-            password_hash=hash_password("testpass"),
-            full_name="Test Admin",
-            role=DashboardRole.OWNER.value,
-            is_active=True,
+        user = existing
+    else:
+        user = await repo.create(
+            DashboardUser(
+                email="admin@test.local",
+                password_hash=hash_password("testpass"),
+                full_name="Test Admin",
+                role=DashboardRole.OWNER.value,
+                is_active=True,
+            )
         )
-    )
+    await TenantBootstrapService(session).ensure_default_tenant()
+    return user
 
 
 @pytest_asyncio.fixture

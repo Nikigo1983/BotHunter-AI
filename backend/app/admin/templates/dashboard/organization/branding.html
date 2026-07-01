@@ -1,0 +1,43 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Branding — Organization{% endblock %}
+{% block content %}
+<div class="mb-4">
+    <h1 class="h3 mb-1">White Label Branding</h1>
+    <p class="text-muted mb-0">Customize organization appearance in the dashboard.</p>
+</div>
+{% if request.query_params.get('saved') %}
+<div class="alert alert-success">Branding saved.</div>
+{% endif %}
+<div class="card shadow-sm">
+    <div class="card-body">
+        <form method="post" action="/admin/organization/branding">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Organization name</label>
+                    <input type="text" name="name" class="form-control" value="{{ organization.name }}" {% if not can_manage_users %}disabled{% endif %}>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Display name</label>
+                    <input type="text" name="display_name" class="form-control" value="{{ organization.display_name or '' }}" {% if not can_manage_users %}disabled{% endif %}>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Logo URL</label>
+                    <input type="url" name="logo_url" class="form-control" value="{{ organization.logo_url or '' }}" {% if not can_manage_users %}disabled{% endif %}>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Favicon URL</label>
+                    <input type="url" name="favicon_url" class="form-control" value="{{ organization.favicon_url or '' }}" {% if not can_manage_users %}disabled{% endif %}>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Brand color</label>
+                    <input type="text" name="brand_color" class="form-control" value="{{ organization.brand_color or '#6366f1' }}" {% if not can_manage_users %}disabled{% endif %}>
+                </div>
+            </div>
+            {% if can_manage_users %}
+            <button type="submit" class="btn btn-primary mt-3">Save branding</button>
+            {% endif %}
+        </form>
+    </div>
+</div>
+{% endblock %}

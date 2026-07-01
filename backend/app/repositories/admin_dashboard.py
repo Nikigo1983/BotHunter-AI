@@ -33,16 +33,30 @@ class AdminDashboardRepository:
     async def list_join_requests(
         self,
         *,
+        organization_id: uuid.UUID,
+        workspace_id: uuid.UUID,
         status_filter: StatusFilter = "all",
         search: str | None = None,
         offset: int = 0,
         limit: int = 25,
     ) -> JoinRequestListQueryResult:
-        filters_stmt = self._apply_filters(select(JoinRequest.id), status_filter, search)
+        filters_stmt = self._apply_filters(
+            select(JoinRequest.id),
+            status_filter,
+            search,
+            organization_id=organization_id,
+            workspace_id=workspace_id,
+        )
         count_stmt = select(func.count()).select_from(filters_stmt.subquery())
         total = int((await self._session.execute(count_stmt)).scalar_one())
 
-        rows_stmt = self._apply_filters(select(JoinRequest), status_filter, search)
+        rows_stmt = self._apply_filters(
+            select(JoinRequest),
+            status_filter,
+            search,
+            organization_id=organization_id,
+            workspace_id=workspace_id,
+        )
         rows_stmt = (
             rows_stmt.options(
                 selectinload(JoinRequest.channel),
@@ -57,15 +71,26 @@ class AdminDashboardRepository:
         rows = [self._to_admin_row(item) for item in join_requests]
         return JoinRequestListQueryResult(rows=rows, total=total)
 
-    async def get_join_request(self, join_request_id: uuid.UUID) -> JoinRequestAdminRow | None:
+    async def get_join_request(
+        self,
+        join_request_id: uuid.UUID,
+        *,
+        organization_id: uuid.UUID,
+        workspace_id: uuid.UUID,
+    ) -> JoinRequestAdminRow | None:
         stmt = (
             select(JoinRequest)
+            .join(TelegramChannel, TelegramChannel.id == JoinRequest.channel_id)
             .options(
                 selectinload(JoinRequest.channel),
                 selectinload(JoinRequest.telegram_user),
                 selectinload(JoinRequest.ai_analyses),
             )
-            .where(JoinRequest.id == join_request_id)
+            .where(
+                JoinRequest.id == join_request_id,
+                TelegramChannel.organization_id == organization_id,
+                TelegramChannel.workspace_id == workspace_id,
+            )
         )
         join_request = (await self._session.execute(stmt)).scalar_one_or_none()
         if join_request is None:
@@ -119,14 +144,20 @@ class AdminDashboardRepository:
         stmt: Select[Any],
         status_filter: StatusFilter,
         search: str | None,
+        *,
+        organization_id: uuid.UUID,
+        workspace_id: uuid.UUID,
     ) -> Select[Any]:
+        stmt = stmt.join(TelegramChannel, JoinRequest.channel_id == TelegramChannel.id).where(
+            TelegramChannel.organization_id == organization_id,
+            TelegramChannel.workspace_id == workspace_id,
+        )
         mapped_status = STATUS_FILTER_MAP.get(status_filter)
         if mapped_status is not None:
             stmt = stmt.where(JoinRequest.status == mapped_status)
 
         cleaned = (search or "").strip()
         if cleaned:
-            stmt = stmt.join(TelegramChannel, JoinRequest.channel_id == TelegramChannel.id)
             stmt = stmt.join(TelegramUser, JoinRequest.telegram_user_id == TelegramUser.id)
             conditions = [
                 TelegramChannel.title.ilike(f"%{cleaned}%"),

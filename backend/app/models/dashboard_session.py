@@ -22,6 +22,14 @@ class DashboardSession(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
         ForeignKey("dashboard_users.id", ondelete="CASCADE"),
         nullable=False,
     )
+    active_organization_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("organizations.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    active_workspace_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="SET NULL"),
+        nullable=True,
+    )
     token_hash: Mapped[str] = mapped_column(String(128), nullable=False)
     csrf_token: Mapped[str] = mapped_column(String(128), nullable=False)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

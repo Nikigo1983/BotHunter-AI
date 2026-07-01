@@ -5,6 +5,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.admin.auth_router import auth_router
+from app.admin.invite_router import invite_router
+from app.admin.organization_router import organization_router
+from app.admin.tenant_router import tenant_router
 from app.admin.policy_router import policy_router
 from app.admin.router import router as admin_web_router
 from app.admin.system_router import system_router
@@ -14,6 +17,7 @@ from app.config.runtime_overrides import refresh_runtime_snapshot
 from app.database import engine
 from app.database.session import async_session_factory
 from app.services.dashboard_auth import DashboardAuthService
+from app.services.tenant_bootstrap import TenantBootstrapService
 from app.utils.logging import get_logger, setup_logging
 
 logger = get_logger(__name__)
@@ -24,12 +28,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     setup_logging()
     settings = get_settings()
     logger.info("Starting %s in %s mode", settings.app_name, settings.app_env)
-    from app.services.policy import PolicyService
-
     async with async_session_factory() as session:
         auth_service = DashboardAuthService(session)
         await auth_service.ensure_default_owner()
-        await PolicyService(session).ensure_initial_policy()
+        await TenantBootstrapService(session).ensure_default_tenant()
         await session.commit()
         await refresh_runtime_snapshot(session)
         await session.commit()
@@ -62,7 +64,10 @@ def create_app() -> FastAPI:
 
     app.include_router(api_v1_router, prefix=settings.api_v1_prefix)
     app.include_router(auth_router)
+    app.include_router(invite_router)
     app.include_router(admin_web_router)
+    app.include_router(organization_router)
+    app.include_router(tenant_router)
     app.include_router(policy_router)
     app.include_router(system_router)
 

@@ -9,6 +9,8 @@ from app.services.dashboard_auth import (
     get_session_token_from_request,
 )
 from app.services.notification_service import NotificationService
+from app.tenant.middleware import resolve_tenant_context
+from app.tenant.resolver import TenantResolver
 
 AUTH_LOGIN_URL = "/admin/login"
 
@@ -65,10 +67,18 @@ async def attach_dashboard_auth(
     session: AsyncSession = Depends(get_db_session),
 ) -> DashboardAuthContext:
     notifications = await NotificationService(session).get_active_alerts(limit=5)
+    tenant = await resolve_tenant_context(request, auth, session)
+    workspaces = await TenantResolver(session).list_accessible_workspaces(auth.user.id)
+    from app.repositories.deps import get_organization_repository
+
+    organization = await get_organization_repository(session).get_by_id(tenant.organization_id)
     request.state.dashboard_auth = auth
     request.state.notifications = notifications
     request.state.current_user = auth.user
     request.state.csrf_token = auth.csrf_token
+    request.state.tenant = tenant
+    request.state.workspaces = workspaces
+    request.state.organization = organization
     return auth
 
 
