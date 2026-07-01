@@ -4,8 +4,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.repositories.ai_feedback import AIFeedbackRepository
 from app.repositories.admin_dashboard import AdminDashboardRepository
+from app.repositories.analytics import AnalyticsRepository
 from app.repositories.ai_analysis import AIAnalysisRepository
 from app.repositories.ai_usage import AIUsageRepository
+from app.repositories.analytics import AnalyticsRepository
 from app.repositories.audit_log import AuditLogRepository
 from app.repositories.base import BaseRepository
 from app.repositories.blacklist import BlacklistRepository
@@ -75,6 +77,10 @@ def get_reputation_repository(session: AsyncSession) -> ReputationRepository:
 
 def get_ai_usage_repository(session: AsyncSession) -> AIUsageRepository:
     return AIUsageRepository(session)
+
+
+def get_analytics_repository(session: AsyncSession) -> AnalyticsRepository:
+    return AnalyticsRepository(session)
 
 
 def get_audit_log_repository(session: AsyncSession) -> AuditLogRepository:

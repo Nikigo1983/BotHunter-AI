@@ -123,6 +123,32 @@
     </div>
 
     <div class="col-lg-6">
+        {% if detail.decision_comparison %}
+        <div class="card shadow-sm mb-4 border-{{ detail.decision_comparison.verdict_class }}">
+            <div class="card-header fw-semibold">AI vs Human</div>
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-center gap-3 flex-wrap mb-3">
+                    <div class="text-center">
+                        <div class="small text-muted">AI</div>
+                        <span class="badge text-bg-{{ decision_badge_class(detail.decision_comparison.ai_decision) }} fs-6">
+                            {{ format_decision_label(detail.decision_comparison.ai_decision) }}
+                        </span>
+                    </div>
+                    <div class="fs-3 text-muted">&darr;</div>
+                    <div class="text-center">
+                        <div class="small text-muted">Admin</div>
+                        <span class="badge text-bg-{{ decision_badge_class(detail.decision_comparison.human_decision) }} fs-6">
+                            {{ format_decision_label(detail.decision_comparison.human_decision) }}
+                        </span>
+                    </div>
+                </div>
+                <div class="alert alert-{{ detail.decision_comparison.verdict_class }} mb-0 text-center fw-semibold">
+                    {{ detail.decision_comparison.verdict }}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
         <div class="card shadow-sm mb-4">
             <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
                 <span>Explainable AI</span>

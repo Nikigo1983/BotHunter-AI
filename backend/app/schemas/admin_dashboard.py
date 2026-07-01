@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Any
 
 from app.models.enums import AnalysisDecision, JoinRequestStatus
+from app.schemas.analytics import DecisionComparisonDTO
 
 
 @dataclass(slots=True)
@@ -153,3 +154,4 @@ class JoinRequestDetailDTO:
     ai_feedbacks: list[AIFeedbackItemDTO] | None = None
     trust_score: float = 50.0
     reputation_history: list[ReputationHistoryItemDTO] | None = None
+    decision_comparison: DecisionComparisonDTO | None = None

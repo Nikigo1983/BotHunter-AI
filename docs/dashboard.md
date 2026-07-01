@@ -8,6 +8,12 @@ Web Admin Dashboard позволяет просматривать и обраб�
 
 OpenAI **не используется** в dashboard.
 
+**v1.7:** AI Analytics & Feedback Center — `/admin/analytics`, accuracy, rules, providers, timeline, Decision Inspector.
+
+**v1.6:** Hybrid Explainability — deterministic + GPT signals, risk scale.
+
+**v1.5:** Explainable AI — structured GPT output, dashboard UX.
+
 **v1.4:** OpenRouter AI Gateway — `/admin/ai`, `/admin/settings/ai`, ai_usage tracking.
 
 **v1.3:** Reputation Engine — Trust Score, auto approve/reject, Reputation History, REST API reputation.
@@ -41,7 +47,8 @@ flowchart LR
 | URL | Описание |
 |-----|----------|
 | `/admin` | Список заявок, статистика, фильтры, поиск, пагинация (25) |
-| `/admin/join-request/{id}` | Детальная карточка + действия |
+| `/admin/analytics` | AI Analytics & Feedback Center (v1.7) |
+| `/admin/join-request/{id}` | Детальная карточка + действия + Decision Inspector |
 | `/admin/partials/join-requests` | HTMX partial для таблицы |
 
 ### Действия на странице заявки
@@ -80,11 +87,19 @@ Flash-сообщения показываются после redirect.
 
 | `/admin/settings/ai` | Read-only AI конфигурация (provider, model, timeout, retry) |
 
-### AI Usage (v1.4)
+### AI Usage (v1.4, extended v1.7)
 
 | URL | Описание |
 |-----|----------|
-| `/admin/ai` | AI-статистика: запросы, токены, cost, latency, top models, daily |
+| `/admin/ai` | AI-статистика: запросы, токены, cost (total/today/month), latency, top models, model rankings |
+
+### AI Analytics (v1.7)
+
+| URL | Описание |
+|-----|----------|
+| `/admin/analytics` | Accuracy, decision distribution, providers, rules, feedback, timeline |
+
+Подробности: [docs/analytics.md](analytics.md).
 
 ---
 
@@ -96,6 +111,11 @@ Flash-сообщения показываются после redirect.
 | GET | `/api/v1/admin/join-requests/{id}` | Детали заявки |
 | GET | `/api/v1/admin/statistics` | Статистика (+ avg_trust_score) |
 | GET | `/api/v1/admin/reputation/{telegram_user_id}` | Trust score, history, trend |
+| GET | `/api/v1/admin/analytics` | Analytics overview (v1.7) |
+| GET | `/api/v1/admin/analytics/accuracy` | AI accuracy (v1.7) |
+| GET | `/api/v1/admin/analytics/rules` | Rule effectiveness (v1.7) |
+| GET | `/api/v1/admin/analytics/providers` | Provider stats (v1.7) |
+| GET | `/api/v1/admin/analytics/timeline` | Quality timeline (v1.7) |
 | POST | `/api/v1/admin/join-requests/{id}/approve` | Одобрить |
 | POST | `/api/v1/admin/join-requests/{id}/reject` | Отклонить |
 | POST | `/api/v1/admin/join-requests/{id}/whitelist` | Whitelist |
@@ -109,6 +129,7 @@ Flash-сообщения показываются после redirect.
 |--------|------------|
 | `AdminDashboardService` | Read-only: список, detail, statistics, reputation |
 | `AdminJoinRequestActionService` | Approve/Reject/Whitelist/Blacklist |
+| `AnalyticsService` | AI analytics, accuracy, rules, providers, timeline (v1.7) |
 
 ---
 

@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database.session import get_db_session
 from app.repositories.admin_dashboard import StatusFilter
 from app.services.admin_ai import AdminAIService
+from app.services.analytics import AnalyticsService
 from app.services.admin_dashboard import AdminDashboardService, PAGE_SIZE
 from app.services.admin_join_request_action import AdminJoinRequestActionService
 
@@ -37,6 +38,12 @@ async def get_admin_ai_service(
     session: AsyncSession = Depends(get_db_session),
 ) -> AdminAIService:
     return AdminAIService(session)
+
+
+async def get_analytics_service(
+    session: AsyncSession = Depends(get_db_session),
+) -> AnalyticsService:
+    return AnalyticsService(session)
 
 
 def status_badge_class(status: str) -> str:
@@ -294,6 +301,25 @@ async def admin_ai_usage(
         request,
         "dashboard/ai.html",
         {"stats": stats},
+    )
+
+
+@router.get("/analytics", response_class=HTMLResponse)
+async def admin_analytics(
+    request: Request,
+    days: int = Query(default=30, ge=7, le=90),
+    service: AnalyticsService = Depends(get_analytics_service),
+) -> HTMLResponse:
+    overview = await service.get_overview()
+    timeline = await service.get_timeline(days=days)
+    return ADMIN_TEMPLATES.TemplateResponse(
+        request,
+        "dashboard/analytics.html",
+        {
+            "overview": overview,
+            "timeline": timeline,
+            "timeline_days": days if days in {7, 30, 90} else 30,
+        },
     )
 
 

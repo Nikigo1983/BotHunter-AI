@@ -1,0 +1,208 @@
+{% extends "dashboard/base.html" %}
+{% block title %}AI Analytics — BotHunter Admin{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <h1 class="h3 mb-0">AI Analytics & Feedback Center</h1>
+    <div class="btn-group btn-group-sm">
+        <a href="/admin/analytics?days=7" class="btn btn-outline-secondary {% if timeline_days == 7 %}active{% endif %}">7d</a>
+        <a href="/admin/analytics?days=30" class="btn btn-outline-secondary {% if timeline_days == 30 %}active{% endif %}">30d</a>
+        <a href="/admin/analytics?days=90" class="btn btn-outline-secondary {% if timeline_days == 90 %}active{% endif %}">90d</a>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-2"><div class="card shadow-sm"><div class="card-body">
+        <div class="text-muted small">AI Decisions</div>
+        <div class="fs-4 fw-bold">{{ overview.accuracy.total_decisions }}</div>
+    </div></div></div>
+    <div class="col-md-2"><div class="card shadow-sm border-success"><div class="card-body">
+        <div class="text-muted small">Matched</div>
+        <div class="fs-4 fw-bold text-success">{{ overview.accuracy.matched }}</div>
+    </div></div></div>
+    <div class="col-md-2"><div class="card shadow-sm border-danger"><div class="card-body">
+        <div class="text-muted small">Mismatched</div>
+        <div class="fs-4 fw-bold text-danger">{{ overview.accuracy.mismatched }}</div>
+    </div></div></div>
+    <div class="col-md-2"><div class="card shadow-sm"><div class="card-body">
+        <div class="text-muted small">Accuracy</div>
+        <div class="fs-4 fw-bold">{{ overview.accuracy.accuracy_percent if overview.accuracy.accuracy_percent is not none else "—" }}{% if overview.accuracy.accuracy_percent is not none %}%{% endif %}</div>
+    </div></div></div>
+    <div class="col-md-2"><div class="card shadow-sm"><div class="card-body">
+        <div class="text-muted small">False Approve</div>
+        <div class="fs-4 fw-bold">{{ overview.accuracy.false_approve }}</div>
+    </div></div></div>
+    <div class="col-md-2"><div class="card shadow-sm"><div class="card-body">
+        <div class="text-muted small">False Reject</div>
+        <div class="fs-4 fw-bold">{{ overview.accuracy.false_reject }}</div>
+    </div></div></div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-header fw-semibold">Decision Distribution</div>
+            <div class="card-body">
+                {% set total_decisions = overview.decision_distribution | sum(attribute='count') %}
+                {% for item in overview.decision_distribution %}
+                {% set pct = (item.count * 100 / total_decisions) if total_decisions else 0 %}
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between small mb-1">
+                        <span>{{ format_decision_label(item.decision) }}</span>
+                        <span>{{ item.count }} ({{ "%.0f"|format(pct) }}%)</span>
+                    </div>
+                    <div class="confidence-track">
+                        <div class="confidence-fill bg-{{ decision_badge_class(item.decision) }}" style="width: {{ pct }}%;"></div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="text-muted">Нет данных</div>
+                {% endfor %}
+                <div class="small text-muted mt-2">Manual Review Accuracy: {{ overview.accuracy.manual_review_accuracy_percent if overview.accuracy.manual_review_accuracy_percent is not none else "—" }}{% if overview.accuracy.manual_review_accuracy_percent is not none %}%{% endif %}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-8">
+        <div class="card shadow-sm h-100">
+            <div class="card-header fw-semibold">AI Quality Timeline ({{ timeline_days }} days)</div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead class="table-light">
+                        <tr>
+                            <th>Date</th><th>Accuracy</th><th>Avg Cost</th><th>Latency</th><th>Confidence</th><th>Feedback</th><th>Usage</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for point in timeline %}
+                        <tr>
+                            <td>{{ point.date }}</td>
+                            <td>{{ point.accuracy_percent if point.accuracy_percent is not none else "—" }}{% if point.accuracy_percent is not none %}%{% endif %}</td>
+                            <td>${{ "%.4f"|format(point.avg_cost) }}</td>
+                            <td>{{ "%.0f"|format(point.avg_latency_ms) }} ms</td>
+                            <td>{{ point.avg_confidence if point.avg_confidence is not none else "—" }}</td>
+                            <td>{{ point.feedback_count }}</td>
+                            <td>{{ point.usage_count }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="7" class="text-muted text-center py-3">Нет данных за выбранный период</td></tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-7">
+        <div class="card shadow-sm">
+            <div class="card-header fw-semibold">AI Provider Statistics</div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead class="table-light">
+                        <tr><th>Provider</th><th>Model</th><th>Requests</th><th>Latency</th><th>Tokens</th><th>Cost</th><th>Confidence</th><th>Accuracy</th></tr>
+                        </thead>
+                        <tbody>
+                        {% for item in overview.providers %}
+                        <tr>
+                            <td>{{ item.provider }}</td>
+                            <td><code>{{ item.model }}</code></td>
+                            <td>{{ item.requests }}</td>
+                            <td>{{ "%.1f"|format(item.avg_latency_ms / 1000) }}s</td>
+                            <td>{{ "%.0f"|format(item.avg_tokens) }}</td>
+                            <td>${{ "%.4f"|format(item.avg_cost) }}</td>
+                            <td>{{ item.avg_confidence if item.avg_confidence is not none else "—" }}</td>
+                            <td>{{ item.accuracy_percent if item.accuracy_percent is not none else "—" }}{% if item.accuracy_percent is not none %}%{% endif %}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="8" class="text-muted text-center py-3">Нет данных</td></tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header fw-semibold">Human Feedback Categories</div>
+            <div class="card-body">
+                {% for item in overview.feedback_categories %}
+                <div class="d-flex justify-content-between py-1 border-bottom">
+                    <span class="small">{{ item.label }}</span>
+                    <span class="badge text-bg-secondary">{{ item.count }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="card shadow-sm">
+            <div class="card-header fw-semibold">Usage Highlights</div>
+            <div class="card-body small">
+                <div class="d-flex justify-content-between"><span>Total Cost</span><strong>${{ "%.4f"|format(overview.usage.total_cost) }}</strong></div>
+                <div class="d-flex justify-content-between"><span>Today</span><strong>${{ "%.4f"|format(overview.usage.today_cost) }}</strong></div>
+                <div class="d-flex justify-content-between"><span>This Month</span><strong>${{ "%.4f"|format(overview.usage.month_cost) }}</strong></div>
+                <hr>
+                <div>Most Used: <code>{{ overview.usage.most_used_model or "—" }}</code></div>
+                <div>Most Accurate: <code>{{ overview.usage.most_accurate_model or "—" }}</code></div>
+                <div>Most Expensive: <code>{{ overview.usage.most_expensive_model or "—" }}</code></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header fw-semibold">Rule Effectiveness</div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-sm mb-0">
+                <thead class="table-light">
+                <tr><th>Rule</th><th>Triggered</th><th>Avg Score</th><th>AI Agreed</th><th>Admin Agreed</th><th>False Positives</th></tr>
+                </thead>
+                <tbody>
+                {% for item in overview.rules %}
+                <tr>
+                    <td><code>{{ item.rule_name }}</code></td>
+                    <td>{{ item.triggered_count }}</td>
+                    <td>{{ item.avg_rule_score }}</td>
+                    <td>{{ item.ai_agreed_count }}</td>
+                    <td>{{ item.admin_agreed_count }}</td>
+                    <td>{{ item.false_positive_count }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" class="text-muted text-center py-3">Нет данных</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-header fw-semibold">Recent Feedback Cases (last 50)</div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-sm mb-0">
+                <thead class="table-light">
+                <tr><th>Date</th><th>Join Request</th><th>AI</th><th>Human</th><th>Correct</th><th>Category</th></tr>
+                </thead>
+                <tbody>
+                {% for item in overview.recent_feedback %}
+                <tr>
+                    <td>{{ item.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
+                    <td><a href="/admin/join-request/{{ item.join_request_id }}">Open</a></td>
+                    <td>{{ format_decision_label(item.ai_decision) }}</td>
+                    <td>{{ format_decision_label(item.human_decision) }}</td>
+                    <td>{% if item.was_ai_correct %}<span class="text-success">Yes</span>{% else %}<span class="text-danger">No</span>{% endif %}</td>
+                    <td class="small">{{ item.category }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" class="text-muted text-center py-3">Нет feedback</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -17,6 +17,7 @@ from app.repositories.deps import (
     get_reputation_history_repository,
     get_whitelist_repository,
 )
+from app.services.analytics import AnalyticsService
 from app.reputation.engine import DEFAULT_TRUST_SCORE
 from app.reputation.service import ReputationService
 from app.schemas.admin_dashboard import (
@@ -116,6 +117,9 @@ class AdminDashboardService:
         reputation_history = await self._reputation_history_repo.list_by_telegram_user_id(
             row.telegram_user.id
         )
+        decision_comparison = await AnalyticsService(self._session).build_decision_comparison(
+            join_request_id
+        )
 
         return JoinRequestDetailDTO(
             id=row.join_request.id,
@@ -203,6 +207,7 @@ class AdminDashboardService:
                 )
                 for item in reputation_history
             ],
+            decision_comparison=decision_comparison,
         )
 
     async def get_statistics(self) -> DashboardStatisticsDTO:

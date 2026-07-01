@@ -1,5 +1,25 @@
 # BotHunter AI — Changelog
 
+## [1.7.0] — 2026-06-30
+
+### Added
+
+- **AI Analytics & Feedback Center** — `/admin/analytics` with accuracy, decision distribution, provider stats, rule effectiveness, feedback categories, timeline (7/30/90 days), recent 50 cases.
+- `AnalyticsRepository` + `AnalyticsService` — aggregated SQL, no SQL in routers.
+- REST API (read-only): `/api/v1/admin/analytics`, `/accuracy`, `/rules`, `/providers`, `/timeline`.
+- Extended `/admin/ai`: today/month cost, avg tokens, most used/accurate/expensive model.
+- **Decision Inspector** on join request detail — AI vs Human with verdict.
+- Documentation: `docs/analytics.md`; updated `dashboard.md`, `architecture.md`.
+- Tests: analytics service, API, dashboard, accuracy, rules, providers.
+
+### Not changed (by design)
+
+- Join Request pipeline
+- Rule Engine, Feature Extraction, Reputation Engine
+- AI Gateway / OpenRouterProvider
+
+---
+
 ## [1.6.0] — 2026-06-30
 
 ### Added

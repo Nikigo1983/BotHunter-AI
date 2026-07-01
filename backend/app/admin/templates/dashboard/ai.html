@@ -3,7 +3,10 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="h3 mb-0">AI Usage</h1>
-    <a href="/admin/settings/ai" class="btn btn-outline-secondary btn-sm">AI Settings</a>
+    <div class="d-flex gap-2">
+        <a href="/admin/analytics" class="btn btn-outline-primary btn-sm">Analytics</a>
+        <a href="/admin/settings/ai" class="btn btn-outline-secondary btn-sm">AI Settings</a>
+    </div>
 </div>
 
 <div class="row g-3 mb-4">
@@ -21,16 +24,33 @@
     </div>
     <div class="col-md-3">
         <div class="card shadow-sm"><div class="card-body">
-            <div class="text-muted small">Estimated Cost</div>
+            <div class="text-muted small">Total Cost</div>
             <div class="fs-4 fw-bold">${{ "%.4f"|format(stats.total_cost) }}</div>
+            <div class="small text-muted">Today: ${{ "%.4f"|format(stats.today_cost) }} · Month: ${{ "%.4f"|format(stats.month_cost) }}</div>
         </div></div>
     </div>
     <div class="col-md-3">
         <div class="card shadow-sm"><div class="card-body">
-            <div class="text-muted small">Avg Latency</div>
+            <div class="text-muted small">Avg Latency / Tokens</div>
             <div class="fs-4 fw-bold">{{ "%.0f"|format(stats.avg_latency_ms) }} ms</div>
+            <div class="small text-muted">Avg tokens: {{ "%.0f"|format(stats.avg_tokens) }}</div>
         </div></div>
     </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4"><div class="card shadow-sm"><div class="card-body">
+        <div class="text-muted small">Most Used Model</div>
+        <div class="fw-semibold"><code>{{ stats.most_used_model or "—" }}</code></div>
+    </div></div></div>
+    <div class="col-md-4"><div class="card shadow-sm"><div class="card-body">
+        <div class="text-muted small">Most Accurate Model</div>
+        <div class="fw-semibold"><code>{{ stats.most_accurate_model or "—" }}</code></div>
+    </div></div></div>
+    <div class="col-md-4"><div class="card shadow-sm"><div class="card-body">
+        <div class="text-muted small">Most Expensive Model</div>
+        <div class="fw-semibold"><code>{{ stats.most_expensive_model or "—" }}</code></div>
+    </div></div></div>
 </div>
 
 <div class="row g-4">

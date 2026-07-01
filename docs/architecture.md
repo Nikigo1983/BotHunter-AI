@@ -4,7 +4,7 @@
 
 BotHunter AI follows clean architecture with clear separation of concerns.
 
-**Текущая версия:** v1.4 — Universal AI Gateway (OpenRouter).
+**Текущая версия:** v1.7 — AI Analytics & Feedback Center.
 
 ## Layers
 
@@ -29,6 +29,7 @@ Infrastructure →  database/, repositories/, config/, ai/, utils/
 | `reputation/` | Reputation Engine (`ReputationService`) |
 | `models/`   | SQLAlchemy ORM entities                 |
 | `repositories/` | Data access layer (Generic Repository) |
+| `explainability/` | Hybrid Explainability builder (v1.6) |
 | `schemas/`  | Pydantic request/response models        |
 | `database/` | DB engine, sessions, base model         |
 | `config/`   | Environment-based settings              |
@@ -92,6 +93,16 @@ Infrastructure →  database/, repositories/, config/, ai/, utils/
 - Fallback на `MockAIProvider` при недоступности OpenRouter.
 
 Подробности: [docs/openrouter.md](openrouter.md).
+
+## AI Analytics & Feedback Center (v1.7)
+
+- `AnalyticsRepository` — агрегирующие SQL-запросы (accuracy, rules, providers, timeline).
+- `AnalyticsService` — маппинг DTO, Decision Inspector.
+- Dashboard: `/admin/analytics`, расширенный `/admin/ai`.
+- REST API: read-only `/api/v1/admin/analytics/*`.
+- Decision Inspector на detail-странице заявки (AI vs Human).
+
+Подробности: [docs/analytics.md](analytics.md).
 
 ## Reputation Engine (v1.3)
 
