@@ -169,54 +169,32 @@ async def test_analytics_service_decision_comparison(session: AsyncSession) -> N
 
 
 @pytest.mark.asyncio
-async def test_analytics_api_endpoints(session: AsyncSession) -> None:
+async def test_analytics_api_endpoints(session: AsyncSession, admin_client: AsyncClient) -> None:
     await seed_analytics_data(session, suffix="api1")
+    overview = await admin_client.get("/api/v1/admin/analytics")
+    assert overview.status_code == 200
+    payload = overview.json()
+    assert payload["accuracy"]["total_decisions"] >= 1
+    assert "providers" in payload
 
-    from app.database.session import get_db_session
+    accuracy = await admin_client.get("/api/v1/admin/analytics/accuracy")
+    assert accuracy.status_code == 200
 
-    async def override_get_db_session():
-        yield session
+    rules = await admin_client.get("/api/v1/admin/analytics/rules")
+    assert rules.status_code == 200
+    assert isinstance(rules.json(), list)
 
-    app.dependency_overrides[get_db_session] = override_get_db_session
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        overview = await client.get("/api/v1/admin/analytics")
-        assert overview.status_code == 200
-        payload = overview.json()
-        assert payload["accuracy"]["total_decisions"] >= 1
-        assert "providers" in payload
+    providers = await admin_client.get("/api/v1/admin/analytics/providers")
+    assert providers.status_code == 200
 
-        accuracy = await client.get("/api/v1/admin/analytics/accuracy")
-        assert accuracy.status_code == 200
-
-        rules = await client.get("/api/v1/admin/analytics/rules")
-        assert rules.status_code == 200
-        assert isinstance(rules.json(), list)
-
-        providers = await client.get("/api/v1/admin/analytics/providers")
-        assert providers.status_code == 200
-
-        timeline = await client.get("/api/v1/admin/analytics/timeline?days=30")
-        assert timeline.status_code == 200
-
-    app.dependency_overrides.clear()
+    timeline = await admin_client.get("/api/v1/admin/analytics/timeline?days=30")
+    assert timeline.status_code == 200
 
 
 @pytest.mark.asyncio
-async def test_admin_analytics_page(session: AsyncSession) -> None:
+async def test_admin_analytics_page(session: AsyncSession, admin_client: AsyncClient) -> None:
     await seed_analytics_data(session, suffix="web1")
-
-    from app.database.session import get_db_session
-
-    async def override_get_db_session():
-        yield session
-
-    app.dependency_overrides[get_db_session] = override_get_db_session
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get("/admin/analytics")
-        assert response.status_code == 200
-        assert "AI Analytics" in response.text
-        assert "Rule Effectiveness" in response.text
-
-    app.dependency_overrides.clear()
+    response = await admin_client.get("/admin/analytics")
+    assert response.status_code == 200
+    assert "AI Analytics" in response.text
+    assert "Rule Effectiveness" in response.text

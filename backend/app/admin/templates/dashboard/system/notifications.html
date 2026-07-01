@@ -1,0 +1,19 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Notifications — BotHunter Admin{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">Notification Center</h1>
+    <form method="post" action="/admin/system/notifications/read-all">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button class="btn btn-sm btn-outline-secondary">Mark all read</button>
+    </form>
+</div>
+{% for note in notifications %}
+<div class="alert {% if note.level == 'critical' %}alert-danger{% elif note.level == 'warning' %}alert-warning{% else %}alert-info{% endif %} {% if note.is_read %}opacity-75{% endif %}">
+    <strong>{{ note.title }}</strong> — {{ note.message }}
+    <div class="small text-muted">{{ note.created_at }} · {{ note.source }}</div>
+</div>
+{% else %}
+<div class="alert alert-success">No active notifications.</div>
+{% endfor %}
+{% endblock %}

@@ -51,6 +51,14 @@ class Settings(BaseSettings):
     decision_approve_below: int = 30
     decision_reject_from: int = 70
 
+    dashboard_session_secret: str = "change-me-in-production"
+    dashboard_session_max_age_hours: int = 24
+    dashboard_cookie_secure: bool = False
+    dashboard_admin_email: str = "admin@bothunter.local"
+    dashboard_admin_password: str = "admin"
+    dashboard_https_enabled: bool = False
+    monthly_budget_usd: float = 100.0
+
     @computed_field
     @property
     def database_url(self) -> str:

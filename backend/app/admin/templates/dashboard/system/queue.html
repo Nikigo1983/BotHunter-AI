@@ -1,0 +1,12 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Queue — BotHunter Admin{% endblock %}
+{% block content %}
+<h1 class="h3 mb-4">Queue Monitor</h1>
+<div class="row g-3">
+    <div class="col-md-3"><div class="card shadow-sm"><div class="card-body"><div class="text-muted small">Pending</div><div class="h3 mb-0">{{ stats.pending }}</div></div></div></div>
+    <div class="col-md-3"><div class="card shadow-sm"><div class="card-body"><div class="text-muted small">Running / Manual Review</div><div class="h3 mb-0">{{ stats.running }}</div></div></div></div>
+    <div class="col-md-3"><div class="card shadow-sm"><div class="card-body"><div class="text-muted small">Failed</div><div class="h3 mb-0 text-danger">{{ stats.failed }}</div></div></div></div>
+    <div class="col-md-3"><div class="card shadow-sm"><div class="card-body"><div class="text-muted small">Retries</div><div class="h3 mb-0">{{ stats.retries }}</div></div></div></div>
+</div>
+<p class="text-muted small mt-3">Queue stats are derived from pending join requests and unresolved system errors.</p>
+{% endblock %}

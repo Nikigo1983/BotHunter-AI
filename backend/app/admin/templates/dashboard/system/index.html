@@ -1,0 +1,98 @@
+{% extends "dashboard/base.html" %}
+{% block title %}System — BotHunter Admin{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">System Monitor</h1>
+    <div class="btn-group btn-group-sm">
+        <a href="/admin/system/errors" class="btn btn-outline-danger">Errors</a>
+        <a href="/admin/system/queue" class="btn btn-outline-secondary">Queue</a>
+        <a href="/admin/system/usage" class="btn btn-outline-secondary">Usage</a>
+        <a href="/admin/system/backup" class="btn btn-outline-secondary">Backup</a>
+        <a href="/admin/system/secrets" class="btn btn-outline-secondary">Secrets</a>
+        <a href="/admin/system/logs" class="btn btn-outline-secondary">Logs</a>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-4">
+        <div class="card shadow-sm border-success h-100">
+            <div class="card-body text-center">
+                <div class="display-4 fw-bold text-success">{{ ready.score_percent }}%</div>
+                <div class="h5">Production Ready</div>
+                <ul class="list-unstyled text-start small mt-3 mb-0">
+                    {% for item in ready.items %}
+                    <li class="mb-1">
+                        {% if item.passed %}<span class="text-success">✓</span>{% else %}<span class="text-danger">✗</span>{% endif %}
+                        {{ item.label }}
+                        {% if item.detail %}<span class="text-muted">— {{ item.detail }}</span>{% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-8">
+        <div class="card shadow-sm h-100">
+            <div class="card-header fw-semibold">Health Monitor</div>
+            <div class="card-body">
+                <div class="row g-2">
+                    {% for service in services %}
+                    <div class="col-md-6">
+                        <div class="border rounded p-3 h-100">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <strong>{{ service.name }}</strong>
+                                {% if service.status == 'ok' %}
+                                <span class="badge text-bg-success">OK</span>
+                                {% elif service.status == 'warning' %}
+                                <span class="badge text-bg-warning">Warning</span>
+                                {% else %}
+                                <span class="badge text-bg-danger">Error</span>
+                                {% endif %}
+                            </div>
+                            {% if service.detail %}<div class="small text-muted mt-1">{{ service.detail }}</div>{% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header fw-semibold">Usage Today</div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-6">AI requests</dt><dd class="col-sm-6">{{ usage.ai_requests_today }}</dd>
+                    <dt class="col-sm-6">Tokens</dt><dd class="col-sm-6">{{ usage.tokens_today }}</dd>
+                    <dt class="col-sm-6">Cost today</dt><dd class="col-sm-6">${{ '%.4f'|format(usage.cost_today) }}</dd>
+                    <dt class="col-sm-6">Budget remaining</dt><dd class="col-sm-6">${{ '%.2f'|format(usage.remaining_budget) }} / ${{ '%.2f'|format(usage.monthly_budget) }}</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header fw-semibold">Docker / Host</div>
+            <div class="card-body">
+                <dl class="row mb-3">
+                    <dt class="col-sm-5">CPU</dt><dd class="col-sm-7">{{ docker.cpu_percent if docker.cpu_percent is not none else '—' }}%</dd>
+                    <dt class="col-sm-5">RAM</dt><dd class="col-sm-7">
+                        {% if docker.memory_used_mb is not none %}{{ docker.memory_used_mb }} / {{ docker.memory_total_mb }} MB{% else %}—{% endif %}
+                    </dd>
+                </dl>
+                <ul class="list-group list-group-flush">
+                    {% for container in docker.containers %}
+                    <li class="list-group-item d-flex justify-content-between px-0">
+                        <span>{{ container.name }}</span>
+                        <span class="badge text-bg-success">{{ container.status }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

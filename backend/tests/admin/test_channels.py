@@ -170,91 +170,81 @@ async def test_admin_channel_service_statistics(session: AsyncSession) -> None:
 
 
 @pytest.mark.asyncio
-async def test_channels_api_endpoints(session: AsyncSession) -> None:
+async def test_channels_api_endpoints(session: AsyncSession, admin_client: AsyncClient) -> None:
     channel = await seed_channel(session, suffix="api-ch")
+    list_response = await admin_client.get("/api/v1/admin/channels")
+    assert list_response.status_code == 200
+    items = list_response.json()
+    assert any(item["id"] == str(channel.id) for item in items)
 
-    from app.database.session import get_db_session
+    detail_response = await admin_client.get(f"/api/v1/admin/channels/{channel.id}")
+    assert detail_response.status_code == 200
+    detail = detail_response.json()
+    assert detail["title"] == channel.title
+    assert detail["statistics"]["approved"] == 1
+    assert "settings" in detail
+    assert "timeline" in detail
 
-    async def override_get_db_session():
-        yield session
+    stats_response = await admin_client.get(f"/api/v1/admin/channels/{channel.id}/statistics")
+    assert stats_response.status_code == 200
+    assert stats_response.json()["total_requests"] == 1
 
-    app.dependency_overrides[get_db_session] = override_get_db_session
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        list_response = await client.get("/api/v1/admin/channels")
-        assert list_response.status_code == 200
-        items = list_response.json()
-        assert any(item["id"] == str(channel.id) for item in items)
+    patch_response = await admin_client.patch(
+        f"/api/v1/admin/channels/{channel.id}",
+        json={"ai_enabled": False, "is_active": False},
+    )
+    assert patch_response.status_code == 200
+    patched = patch_response.json()
+    assert patched["settings"]["ai_enabled"] is False
+    assert patched["is_active"] is False
 
-        detail_response = await client.get(f"/api/v1/admin/channels/{channel.id}")
-        assert detail_response.status_code == 200
-        detail = detail_response.json()
-        assert detail["title"] == channel.title
-        assert detail["statistics"]["approved"] == 1
-        assert "settings" in detail
-        assert "timeline" in detail
+    invalid_patch = await admin_client.patch(
+        f"/api/v1/admin/channels/{channel.id}",
+        json={"rule_auto_approve": 80, "rule_auto_reject": 70},
+    )
+    assert invalid_patch.status_code == 422
 
-        stats_response = await client.get(f"/api/v1/admin/channels/{channel.id}/statistics")
-        assert stats_response.status_code == 200
-        assert stats_response.json()["total_requests"] == 1
-
-        patch_response = await client.patch(
-            f"/api/v1/admin/channels/{channel.id}",
-            json={"ai_enabled": False, "is_active": False},
-        )
-        assert patch_response.status_code == 200
-        patched = patch_response.json()
-        assert patched["settings"]["ai_enabled"] is False
-        assert patched["is_active"] is False
-
-        invalid_patch = await client.patch(
-            f"/api/v1/admin/channels/{channel.id}",
-            json={"rule_auto_approve": 80, "rule_auto_reject": 70},
-        )
-        assert invalid_patch.status_code == 422
-
-        missing = await client.get(f"/api/v1/admin/channels/{uuid.uuid4()}")
-        assert missing.status_code == 404
-    app.dependency_overrides.clear()
+    missing = await admin_client.get(f"/api/v1/admin/channels/{uuid.uuid4()}")
+    assert missing.status_code == 404
 
 
 @pytest.mark.asyncio
-async def test_channels_web_pages(session: AsyncSession) -> None:
+async def test_channels_web_pages(session: AsyncSession, admin_client: AsyncClient, admin_csrf: str) -> None:
     channel = await seed_channel(session, suffix="web-ch")
+    index = await admin_client.get("/admin/channels")
+    assert index.status_code == 200
+    assert channel.title in index.text
 
-    from app.database.session import get_db_session
+    detail = await admin_client.get(f"/admin/channels/{channel.id}")
+    assert detail.status_code == 200
+    assert channel.title in detail.text
+    assert "Settings" in detail.text
 
-    async def override_get_db_session():
-        yield session
+    settings_post = await admin_client.post(
+        f"/admin/channels/{channel.id}/settings",
+        data={
+            "csrf_token": admin_csrf,
+            "ai_enabled": "true",
+            "rule_auto_approve": "20",
+            "rule_auto_reject": "80",
+            "trust_auto_approve": "88",
+            "trust_auto_reject": "12",
+            "join_request_timeout_hours": "",
+        },
+        follow_redirects=False,
+    )
+    assert settings_post.status_code == 303
 
-    app.dependency_overrides[get_db_session] = override_get_db_session
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test", follow_redirects=False) as client:
-        index = await client.get("/admin/channels")
-        assert index.status_code == 200
-        assert channel.title in index.text
+    disable = await admin_client.post(
+        f"/admin/channels/{channel.id}/disable",
+        data={"csrf_token": admin_csrf},
+        follow_redirects=False,
+    )
+    assert disable.status_code == 303
 
-        detail = await client.get(f"/admin/channels/{channel.id}")
-        assert detail.status_code == 200
-        assert channel.title in detail.text
-        assert "Settings" in detail.text
-
-        settings_post = await client.post(
-            f"/admin/channels/{channel.id}/settings",
-            data={
-                "ai_enabled": "true",
-                "rule_auto_approve": "20",
-                "rule_auto_reject": "80",
-                "trust_auto_approve": "88",
-                "trust_auto_reject": "12",
-                "join_request_timeout_hours": "",
-            },
-        )
-        assert settings_post.status_code == 303
-
-        disable = await client.post(f"/admin/channels/{channel.id}/disable")
-        assert disable.status_code == 303
-
-        enable = await client.post(f"/admin/channels/{channel.id}/enable")
-        assert enable.status_code == 303
-    app.dependency_overrides.clear()
+    enable = await admin_client.post(
+        f"/admin/channels/{channel.id}/enable",
+        data={"csrf_token": admin_csrf},
+        follow_redirects=False,
+    )
+    assert enable.status_code == 303

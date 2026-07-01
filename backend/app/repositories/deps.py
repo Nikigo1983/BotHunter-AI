@@ -15,11 +15,16 @@ from app.repositories.channel import ChannelRepository
 from app.repositories.channel_connection_error import ChannelConnectionErrorRepository
 from app.repositories.channel_settings import ChannelSettingsRepository
 from app.repositories.channel_statistics import ChannelStatisticsRepository
+from app.repositories.dashboard_session import DashboardSessionRepository
+from app.repositories.dashboard_user import DashboardUserRepository
 from app.repositories.investigation import InvestigationRepository
 from app.repositories.join_request import JoinRequestRepository
 from app.repositories.manual_review import ManualReviewRepository
 from app.repositories.reputation import ReputationRepository
 from app.repositories.reputation_history import ReputationHistoryRepository
+from app.repositories.system_error import SystemErrorRepository
+from app.repositories.system_notification import SystemNotificationRepository
+from app.repositories.system_setting import SystemSettingRepository
 from app.repositories.telegram_bot import TelegramBotRepository
 from app.repositories.telegram_channel import TelegramChannelRepository
 from app.repositories.telegram_user import TelegramUserRepository
@@ -111,6 +116,32 @@ def get_channel_settings_repository(session: AsyncSession) -> ChannelSettingsRep
 
 def get_channel_statistics_repository(session: AsyncSession) -> ChannelStatisticsRepository:
     return ChannelStatisticsRepository(session)
+
+
+def get_dashboard_user_repository(session: AsyncSession) -> DashboardUserRepository:
+    return DashboardUserRepository(session)
+
+
+def get_dashboard_user_service(session: AsyncSession):
+    from app.services.dashboard_user import DashboardUserService
+
+    return DashboardUserService(session)
+
+
+def get_dashboard_session_repository(session: AsyncSession) -> DashboardSessionRepository:
+    return DashboardSessionRepository(session)
+
+
+def get_system_setting_repository(session: AsyncSession) -> SystemSettingRepository:
+    return SystemSettingRepository(session)
+
+
+def get_system_error_repository(session: AsyncSession) -> SystemErrorRepository:
+    return SystemErrorRepository(session)
+
+
+def get_system_notification_repository(session: AsyncSession) -> SystemNotificationRepository:
+    return SystemNotificationRepository(session)
 
 
 RepositoryFactory = Callable[[AsyncSession], BaseRepository]

@@ -3,6 +3,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.admin.auth.deps import require_api_dashboard_auth
 from app.database.session import get_db_session
 from app.schemas.channel_management import (
     ChannelDetailResponse,
@@ -13,7 +14,11 @@ from app.schemas.channel_management import (
 )
 from app.services.admin_channel import AdminChannelService
 
-router = APIRouter(prefix="/admin/channels", tags=["admin-channels"])
+router = APIRouter(
+    prefix="/admin/channels",
+    tags=["admin-channels"],
+    dependencies=[Depends(require_api_dashboard_auth)],
+)
 
 
 async def get_channel_service(

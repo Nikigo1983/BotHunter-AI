@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.admin.auth.deps import require_api_dashboard_auth
 from app.database.session import get_db_session
 from app.schemas.analytics import (
     AIAccuracyResponse,
@@ -15,7 +16,11 @@ from app.schemas.analytics import (
 )
 from app.services.analytics import AnalyticsService
 
-router = APIRouter(prefix="/admin/analytics", tags=["admin-analytics"])
+router = APIRouter(
+    prefix="/admin/analytics",
+    tags=["admin-analytics"],
+    dependencies=[Depends(require_api_dashboard_auth)],
+)
 
 
 async def get_analytics_service(

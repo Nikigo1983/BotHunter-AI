@@ -59,12 +59,15 @@ class AdminAIService:
 
     def get_ai_settings(self) -> AISettingsDTO:
         settings = get_settings()
-        provider = settings.ai_provider.strip().lower()
+        from app.config.runtime_overrides import get_runtime_snapshot
+
+        snapshot = get_runtime_snapshot()
+        provider = snapshot.ai_provider.strip().lower()
         if provider == "openrouter":
-            model = settings.openrouter_model
+            model = snapshot.openrouter_model
             api_key_configured = bool(settings.openrouter_api_key)
         elif provider == "openai":
-            model = settings.openai_model
+            model = snapshot.openai_model
             api_key_configured = bool(settings.openai_api_key)
         else:
             model = "mock-v1"
@@ -73,9 +76,34 @@ class AdminAIService:
         return AISettingsDTO(
             provider=provider,
             model=model,
-            timeout=settings.ai_timeout,
-            max_retries=settings.ai_max_retries,
+            timeout=snapshot.ai_timeout,
+            max_retries=snapshot.ai_max_retries,
             fallback="mock",
             openrouter_base_url=settings.openrouter_base_url,
+            api_key_configured=api_key_configured,
+        )
+
+    async def get_ai_settings_async(self) -> AISettingsDTO:
+        from app.services.runtime_settings import RuntimeSettingsService
+
+        effective = await RuntimeSettingsService(self._session).get_effective_settings()
+        settings = get_settings()
+        provider = effective.ai_provider.strip().lower()
+        if provider == "openrouter":
+            model = effective.openrouter_model
+            api_key_configured = bool(effective.openrouter_api_key)
+        elif provider == "openai":
+            model = effective.openai_model
+            api_key_configured = bool(effective.openai_api_key)
+        else:
+            model = "mock-v1"
+            api_key_configured = True
+        return AISettingsDTO(
+            provider=provider,
+            model=model,
+            timeout=effective.ai_timeout,
+            max_retries=effective.ai_max_retries,
+            fallback="mock",
+            openrouter_base_url=effective.openrouter_base_url,
             api_key_configured=api_key_configured,
         )

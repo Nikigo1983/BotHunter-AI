@@ -150,7 +150,7 @@ async def test_admin_dashboard_trust_score_on_list_and_detail(session: AsyncSess
 
 
 @pytest.mark.asyncio
-async def test_admin_api_reputation_detail(session: AsyncSession) -> None:
+async def test_admin_api_reputation_detail(session: AsyncSession, admin_client: AsyncClient) -> None:
     await seed_join_request(session, suffix="repapi", telegram_id=910301)
     telegram_user = await get_telegram_user_repository(session).get_by_telegram_id(910301)
     assert telegram_user is not None
@@ -164,25 +164,16 @@ async def test_admin_api_reputation_detail(session: AsyncSession) -> None:
         reason=ReputationChangeReason.MANUAL_APPROVED,
     )
 
-    from app.database.session import get_db_session
-
-    async def override_get_db_session():
-        yield session
-
-    app.dependency_overrides[get_db_session] = override_get_db_session
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get(f"/api/v1/admin/reputation/{910301}")
-        assert response.status_code == 200
-        payload = response.json()
-        assert payload["current_score"] == 55.0
-        assert len(payload["history"]) >= 1
-        assert payload["trend"] in {"UP", "DOWN", "STABLE"}
-    app.dependency_overrides.clear()
+    response = await admin_client.get("/api/v1/admin/reputation/910301")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["current_score"] == 55.0
+    assert len(payload["history"]) >= 1
+    assert payload["trend"] in {"UP", "DOWN", "STABLE"}
 
 
 @pytest.mark.asyncio
-async def test_admin_web_dashboard_shows_trust(session: AsyncSession) -> None:
+async def test_admin_web_dashboard_shows_trust(session: AsyncSession, admin_client: AsyncClient) -> None:
     await seed_join_request(session, suffix="webtrust", channel_title="Trust Channel", telegram_id=910401)
     telegram_user = await get_telegram_user_repository(session).get_by_telegram_id(910401)
     assert telegram_user is not None
@@ -191,19 +182,10 @@ async def test_admin_web_dashboard_shows_trust(session: AsyncSession) -> None:
     reputation.reputation_score = 82.0
     await reputation_repo.update(reputation)
 
-    from app.database.session import get_db_session
-
-    async def override_get_db_session():
-        yield session
-
-    app.dependency_overrides[get_db_session] = override_get_db_session
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get("/admin")
-        assert response.status_code == 200
-        assert "Avg Trust" in response.text
-        assert "82" in response.text
-    app.dependency_overrides.clear()
+    response = await admin_client.get("/admin")
+    assert response.status_code == 200
+    assert "Avg Trust" in response.text
+    assert "82" in response.text
 
 
 @pytest.mark.asyncio
@@ -239,78 +221,38 @@ async def test_admin_dashboard_service_detail(session: AsyncSession) -> None:
 
 
 @pytest.mark.asyncio
-async def test_admin_api_list_join_requests(session: AsyncSession) -> None:
+async def test_admin_api_list_join_requests(session: AsyncSession, admin_client: AsyncClient) -> None:
     await seed_join_request(session, suffix="api1")
-
-    async def override_get_db_session():
-        yield session
-
-    from app.database.session import get_db_session
-
-    app.dependency_overrides[get_db_session] = override_get_db_session
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get("/api/v1/admin/join-requests")
-        assert response.status_code == 200
-        payload = response.json()
-        assert payload["total"] >= 1
-        assert len(payload["items"]) >= 1
-    app.dependency_overrides.clear()
+    response = await admin_client.get("/api/v1/admin/join-requests")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["total"] >= 1
+    assert len(payload["items"]) >= 1
 
 
 @pytest.mark.asyncio
-async def test_admin_api_get_join_request_detail(session: AsyncSession) -> None:
+async def test_admin_api_get_join_request_detail(session: AsyncSession, admin_client: AsyncClient) -> None:
     join_request = await seed_join_request(session, suffix="api2")
-
-    from app.database.session import get_db_session
-
-    async def override_get_db_session():
-        yield session
-
-    app.dependency_overrides[get_db_session] = override_get_db_session
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get(f"/api/v1/admin/join-requests/{join_request.id}")
-        assert response.status_code == 200
-        payload = response.json()
-        assert payload["id"] == str(join_request.id)
-        assert payload["rules"]["rule_score"] == 45.0
-    app.dependency_overrides.clear()
+    response = await admin_client.get(f"/api/v1/admin/join-requests/{join_request.id}")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["id"] == str(join_request.id)
+    assert payload["rules"]["rule_score"] == 45.0
 
 
 @pytest.mark.asyncio
-async def test_admin_api_statistics(session: AsyncSession) -> None:
+async def test_admin_api_statistics(session: AsyncSession, admin_client: AsyncClient) -> None:
     await seed_join_request(session, suffix="api3")
-
-    from app.database.session import get_db_session
-
-    async def override_get_db_session():
-        yield session
-
-    app.dependency_overrides[get_db_session] = override_get_db_session
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get("/api/v1/admin/statistics")
-        assert response.status_code == 200
-        payload = response.json()
-        assert payload["total"] >= 1
-    app.dependency_overrides.clear()
+    response = await admin_client.get("/api/v1/admin/statistics")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["total"] >= 1
 
 
 @pytest.mark.asyncio
-async def test_admin_web_dashboard_page(session: AsyncSession) -> None:
+async def test_admin_web_dashboard_page(session: AsyncSession, admin_client: AsyncClient) -> None:
     await seed_join_request(session, suffix="web1", channel_title="Dashboard Channel")
-
-    from app.database.session import get_db_session
-
-    async def override_get_db_session():
-        yield session
-
-    app.dependency_overrides[get_db_session] = override_get_db_session
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get("/admin")
-        assert response.status_code == 200
-        assert "Dashboard Channel" in response.text
-        assert "Join Requests" in response.text
-    app.dependency_overrides.clear()
+    response = await admin_client.get("/admin")
+    assert response.status_code == 200
+    assert "Dashboard Channel" in response.text
+    assert "Join Requests" in response.text

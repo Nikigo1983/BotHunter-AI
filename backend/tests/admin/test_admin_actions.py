@@ -251,15 +251,8 @@ async def test_whitelist_after_approve_adds_to_whitelist(session: AsyncSession) 
 
 
 @pytest.mark.asyncio
-async def test_admin_api_approve_endpoint(session: AsyncSession) -> None:
+async def test_admin_api_approve_endpoint(session: AsyncSession, admin_client: AsyncClient) -> None:
     join_request = await seed_action_context(session, suffix="api-ap1")
-
-    async def override_get_db_session():
-        yield session
-
-    from app.database.session import get_db_session
-
-    app.dependency_overrides[get_db_session] = override_get_db_session
 
     mock_bot = AsyncMock()
 
@@ -269,12 +262,10 @@ async def test_admin_api_approve_endpoint(session: AsyncSession) -> None:
     from app.api.v1 import admin as admin_api
 
     app.dependency_overrides[admin_api.get_action_service] = override_action_service
-
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.post(f"/api/v1/admin/join-requests/{join_request.id}/approve")
+    try:
+        response = await admin_client.post(f"/api/v1/admin/join-requests/{join_request.id}/approve")
         assert response.status_code == 200
         payload = response.json()
         assert payload["success"] is True
-
-    app.dependency_overrides.clear()
+    finally:
+        app.dependency_overrides.pop(admin_api.get_action_service, None)

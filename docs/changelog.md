@@ -1,5 +1,25 @@
 # BotHunter AI — Changelog
 
+## [2.0.0] — 2026-06-30
+
+### Added — Production Readiness
+
+- **Dashboard auth** — login/logout, bcrypt passwords, HttpOnly session cookie, CSRF on POST forms.
+- **Roles** — Owner, Administrator, Moderator, Viewer with permission checks.
+- **Settings UI** — `/admin/settings` edits AI provider/model/timeout/retry/thresholds/budget in DB (no `.env` edit).
+- **System monitor** — `/admin/system` with health checks, Production Ready score, usage, Docker/host metrics.
+- **Error Center**, **Queue monitor**, **Usage limits**, **Backup/Restore** (JSON/SQL/CSV), **Secrets** (masked), **Logs**, **Notification Center**.
+- REST admin API protected by session auth.
+- Migration `g7h8i9j0k1l2`, docs: `docs/production_readiness.md`.
+- Tests: 190 passed (including `tests/admin/test_production_v2.py`).
+
+### Default login (first startup)
+
+- Email: `admin@bothunter.local`
+- Password: `admin` (change via env: `DASHBOARD_ADMIN_*`)
+
+---
+
 ## [1.9.0] — 2026-06-30
 
 ### Added

@@ -9,6 +9,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.admin.auth.deps import attach_dashboard_auth, validate_post_csrf
 from app.database.session import get_db_session
 from app.models.enums import AnalysisDecision
 from app.repositories.admin_dashboard import StatusFilter
@@ -24,7 +25,11 @@ ADMIN_TEMPLATES = Jinja2Templates(
     directory=str(Path(__file__).resolve().parent / "templates"),
 )
 
-router = APIRouter(prefix="/admin", tags=["admin-web"])
+router = APIRouter(
+    prefix="/admin",
+    tags=["admin-web"],
+    dependencies=[Depends(attach_dashboard_auth)],
+)
 
 
 async def get_admin_service(
@@ -279,7 +284,7 @@ async def admin_join_request_detail(
     )
 
 
-@router.post("/join-request/{join_request_id}/replay")
+@router.post("/join-request/{join_request_id}/replay", dependencies=[Depends(validate_post_csrf)])
 async def admin_replay_action(
     join_request_id: str,
     investigation_service: InvestigationService = Depends(get_investigation_service),
@@ -406,7 +411,7 @@ async def admin_investigations(
     )
 
 
-@router.post("/join-request/{join_request_id}/approve")
+@router.post("/join-request/{join_request_id}/approve", dependencies=[Depends(validate_post_csrf)])
 async def admin_approve_action(
     join_request_id: str,
     action_service: AdminJoinRequestActionService = Depends(get_action_service),
@@ -416,7 +421,7 @@ async def admin_approve_action(
     return _redirect_to_detail(parsed_id, result)
 
 
-@router.post("/join-request/{join_request_id}/reject")
+@router.post("/join-request/{join_request_id}/reject", dependencies=[Depends(validate_post_csrf)])
 async def admin_reject_action(
     join_request_id: str,
     action_service: AdminJoinRequestActionService = Depends(get_action_service),
@@ -426,7 +431,7 @@ async def admin_reject_action(
     return _redirect_to_detail(parsed_id, result)
 
 
-@router.post("/join-request/{join_request_id}/whitelist")
+@router.post("/join-request/{join_request_id}/whitelist", dependencies=[Depends(validate_post_csrf)])
 async def admin_whitelist_action(
     join_request_id: str,
     action_service: AdminJoinRequestActionService = Depends(get_action_service),
@@ -436,7 +441,7 @@ async def admin_whitelist_action(
     return _redirect_to_detail(parsed_id, result)
 
 
-@router.post("/join-request/{join_request_id}/blacklist")
+@router.post("/join-request/{join_request_id}/blacklist", dependencies=[Depends(validate_post_csrf)])
 async def admin_blacklist_action(
     join_request_id: str,
     action_service: AdminJoinRequestActionService = Depends(get_action_service),
@@ -528,7 +533,7 @@ async def admin_channel_detail(
     )
 
 
-@router.post("/channels/{channel_id}/settings")
+@router.post("/channels/{channel_id}/settings", dependencies=[Depends(validate_post_csrf)])
 async def admin_channel_settings_update(
     channel_id: str,
     ai_enabled: bool = Form(...),
@@ -562,7 +567,7 @@ async def admin_channel_settings_update(
     return _redirect_to_channel(parsed_id, flash="success", msg="Настройки канала сохранены")
 
 
-@router.post("/channels/{channel_id}/disable")
+@router.post("/channels/{channel_id}/disable", dependencies=[Depends(validate_post_csrf)])
 async def admin_channel_disable(
     channel_id: str,
     service: AdminChannelService = Depends(get_channel_service),
@@ -574,7 +579,7 @@ async def admin_channel_disable(
     return _redirect_to_channel(parsed_id, flash="success", msg="Канал отключён")
 
 
-@router.post("/channels/{channel_id}/enable")
+@router.post("/channels/{channel_id}/enable", dependencies=[Depends(validate_post_csrf)])
 async def admin_channel_enable(
     channel_id: str,
     service: AdminChannelService = Depends(get_channel_service),

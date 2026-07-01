@@ -26,10 +26,12 @@
     <div class="d-flex gap-2">
         {% if channel.is_active %}
         <form method="post" action="/admin/channels/{{ channel.id }}/disable">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
             <button type="submit" class="btn btn-outline-danger btn-sm">Disable Channel</button>
         </form>
         {% else %}
         <form method="post" action="/admin/channels/{{ channel.id }}/enable">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
             <button type="submit" class="btn btn-outline-success btn-sm">Enable Channel</button>
         </form>
         {% endif %}
@@ -154,6 +156,7 @@
     <div class="card-header fw-semibold">Settings</div>
     <div class="card-body">
         <form method="post" action="/admin/channels/{{ channel.id }}/settings" class="row g-3">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
             <div class="col-12">
                 <h6 class="text-muted text-uppercase small">Rule Engine</h6>
             </div>

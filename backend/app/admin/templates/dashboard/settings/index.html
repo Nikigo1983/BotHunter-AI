@@ -1,0 +1,65 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Settings — BotHunter Admin{% endblock %}
+{% block content %}
+<h1 class="h3 mb-4">Settings</h1>
+{% if request.query_params.get('saved') %}
+<div class="alert alert-success">Settings saved. Changes apply immediately without editing <code>.env</code>.</div>
+{% endif %}
+<form method="post" action="/admin/settings">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <div class="card shadow-sm mb-4">
+        <div class="card-header fw-semibold">AI Provider</div>
+        <div class="card-body row g-3">
+            <div class="col-md-4">
+                <label class="form-label">Provider</label>
+                <select name="ai_provider" class="form-select">
+                    {% for provider in ['mock', 'openrouter', 'openai'] %}
+                    <option value="{{ provider }}" {% if settings.ai_provider == provider %}selected{% endif %}>{{ provider }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">OpenRouter model</label>
+                <input type="text" name="openrouter_model" class="form-control" value="{{ settings.openrouter_model }}">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">OpenAI model</label>
+                <input type="text" name="openai_model" class="form-control" value="{{ settings.openai_model }}">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Timeout (seconds)</label>
+                <input type="number" step="0.1" name="ai_timeout" class="form-control" value="{{ settings.ai_timeout }}">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Retry attempts</label>
+                <input type="number" name="ai_max_retries" class="form-control" value="{{ settings.ai_max_retries }}">
+            </div>
+        </div>
+    </div>
+    {% if can_edit_system %}
+    <div class="card shadow-sm mb-4">
+        <div class="card-header fw-semibold">Thresholds & Budget</div>
+        <div class="card-body row g-3">
+            <div class="col-md-4">
+                <label class="form-label">Decision approve below</label>
+                <input type="number" name="decision_approve_below" class="form-control" value="{{ settings.decision_approve_below }}">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Decision reject from</label>
+                <input type="number" name="decision_reject_from" class="form-control" value="{{ settings.decision_reject_from }}">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Monthly budget (USD)</label>
+                <input type="number" step="0.01" name="monthly_budget_usd" class="form-control" value="{{ settings.monthly_budget_usd }}">
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <input type="hidden" name="decision_approve_below" value="{{ settings.decision_approve_below }}">
+    <input type="hidden" name="decision_reject_from" value="{{ settings.decision_reject_from }}">
+    <input type="hidden" name="monthly_budget_usd" value="{{ settings.monthly_budget_usd }}">
+    <div class="alert alert-info">Thresholds and budget can only be changed by Owner or Administrator.</div>
+    {% endif %}
+    <button type="submit" class="btn btn-primary">Save settings</button>
+</form>
+{% endblock %}

@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.admin.auth.deps import require_api_dashboard_auth
 from app.database.session import get_db_session
 from app.models.enums import AnalysisDecision
 from app.schemas.investigation import (
@@ -16,7 +17,11 @@ from app.schemas.investigation import (
 )
 from app.services.investigation import InvestigationService
 
-router = APIRouter(prefix="/admin/investigations", tags=["admin-investigations"])
+router = APIRouter(
+    prefix="/admin/investigations",
+    tags=["admin-investigations"],
+    dependencies=[Depends(require_api_dashboard_auth)],
+)
 
 
 async def get_investigation_service(

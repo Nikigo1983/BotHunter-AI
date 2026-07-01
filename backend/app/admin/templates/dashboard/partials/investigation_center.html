@@ -6,6 +6,7 @@
             <a href="/admin/join-request/{{ detail.id }}/export/json" class="btn btn-sm btn-outline-secondary">Export JSON</a>
             <a href="/admin/join-request/{{ detail.id }}/export/pdf" class="btn btn-sm btn-outline-secondary">Export PDF</a>
             <form method="post" action="/admin/join-request/{{ detail.id }}/replay" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                 <button type="submit" class="btn btn-sm btn-outline-warning">Replay Analysis</button>
             </form>
         </div>

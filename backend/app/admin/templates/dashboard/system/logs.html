@@ -1,0 +1,12 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Logs — BotHunter Admin{% endblock %}
+{% block content %}
+<h1 class="h3 mb-4">System Logs</h1>
+<div class="mb-3 btn-group btn-group-sm">
+    <a href="/admin/system/logs?log=api" class="btn {% if log_name == 'api' %}btn-dark{% else %}btn-outline-dark{% endif %}">API logs</a>
+    <a href="/admin/system/logs?log=bot" class="btn {% if log_name == 'bot' %}btn-dark{% else %}btn-outline-dark{% endif %}">Bot logs</a>
+    <a href="/admin/system/logs?log=ai" class="btn {% if log_name == 'ai' %}btn-dark{% else %}btn-outline-dark{% endif %}">AI logs</a>
+</div>
+<pre class="bg-dark text-light p-3 rounded small" style="max-height: 70vh; overflow: auto;">{% for line in log_lines %}{{ line }}
+{% endfor %}</pre>
+{% endblock %}

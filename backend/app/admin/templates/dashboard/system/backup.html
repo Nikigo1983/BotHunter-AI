@@ -1,0 +1,29 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Backup — BotHunter Admin{% endblock %}
+{% block content %}
+<h1 class="h3 mb-4">Backup & Restore</h1>
+<div class="row g-4">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header fw-semibold">Export Database</div>
+            <div class="card-body d-grid gap-2">
+                <a href="/admin/system/backup/export?format=json" class="btn btn-outline-primary">Download JSON</a>
+                <a href="/admin/system/backup/export?format=sql" class="btn btn-outline-primary">Download SQL</a>
+                <a href="/admin/system/backup/export?format=csv" class="btn btn-outline-primary">Download CSV</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header fw-semibold">Restore from JSON Backup</div>
+            <div class="card-body">
+                <form method="post" action="/admin/system/backup/restore" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <input type="file" name="file" accept=".json,application/json" class="form-control mb-3" required>
+                    <button type="submit" class="btn btn-warning">Import Backup</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

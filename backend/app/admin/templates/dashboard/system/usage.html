@@ -1,0 +1,12 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Usage Limits — BotHunter Admin{% endblock %}
+{% block content %}
+<h1 class="h3 mb-4">Usage Limits</h1>
+<div class="row g-3">
+    <div class="col-md-4"><div class="card shadow-sm"><div class="card-body"><div class="text-muted small">AI requests today</div><div class="h3">{{ usage.ai_requests_today }}</div></div></div></div>
+    <div class="col-md-4"><div class="card shadow-sm"><div class="card-body"><div class="text-muted small">Tokens today</div><div class="h3">{{ usage.tokens_today }}</div></div></div></div>
+    <div class="col-md-4"><div class="card shadow-sm"><div class="card-body"><div class="text-muted small">Cost today</div><div class="h3">${{ '%.4f'|format(usage.cost_today) }}</div></div></div></div>
+    <div class="col-md-6"><div class="card shadow-sm"><div class="card-body"><div class="text-muted small">Cost this month</div><div class="h3">${{ '%.2f'|format(usage.cost_month) }}</div></div></div></div>
+    <div class="col-md-6"><div class="card shadow-sm"><div class="card-body"><div class="text-muted small">Remaining budget</div><div class="h3 {% if usage.remaining_budget <= 0 %}text-danger{% endif %}">${{ '%.2f'|format(usage.remaining_budget) }}</div><div class="small text-muted">Monthly budget: ${{ '%.2f'|format(usage.monthly_budget) }}</div></div></div></div>
+</div>
+{% endblock %}

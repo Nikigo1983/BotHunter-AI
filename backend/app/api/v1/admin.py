@@ -3,6 +3,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.admin.auth.deps import require_api_dashboard_auth
 from app.database.session import get_db_session
 from app.repositories.admin_dashboard import StatusFilter
 from app.schemas.admin_api import (
@@ -22,7 +23,11 @@ from app.schemas.admin_api import (
 from app.services.admin_dashboard import AdminDashboardService, PAGE_SIZE
 from app.services.admin_join_request_action import AdminJoinRequestActionService
 
-router = APIRouter(prefix="/admin", tags=["admin"])
+router = APIRouter(
+    prefix="/admin",
+    tags=["admin"],
+    dependencies=[Depends(require_api_dashboard_auth)],
+)
 
 
 async def get_admin_service(

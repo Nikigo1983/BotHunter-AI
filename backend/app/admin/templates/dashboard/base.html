@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% if csrf_token %}<meta name="csrf-token" content="{{ csrf_token }}">{% endif %}
     <title>{% block title %}BotHunter Admin{% endblock %}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://unpkg.com/htmx.org@2.0.4"></script>
@@ -28,22 +29,50 @@
     </style>
 </head>
 <body class="bg-light">
+{% set current_user = request.state.current_user if request.state.current_user is defined else none %}
+{% set csrf_token = request.state.csrf_token if request.state.csrf_token is defined else '' %}
+{% set notifications = request.state.notifications if request.state.notifications is defined else [] %}
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
     <div class="container-fluid">
         <a class="navbar-brand" href="/admin">BotHunter Admin</a>
-        <div class="navbar-nav">
+        <div class="navbar-nav flex-row flex-wrap gap-1">
             <a class="nav-link text-white-50" href="/admin">Join Requests</a>
             <a class="nav-link text-white-50" href="/admin/investigations">Investigations</a>
             <a class="nav-link text-white-50" href="/admin/channels">Channels</a>
             <a class="nav-link text-white-50" href="/admin/analytics">Analytics</a>
             <a class="nav-link text-white-50" href="/admin/ai">AI Usage</a>
-            <a class="nav-link text-white-50" href="/admin/settings/ai">AI Settings</a>
+            <a class="nav-link text-white-50" href="/admin/settings">Settings</a>
+            <a class="nav-link text-white-50" href="/admin/system">System</a>
         </div>
+        {% if current_user %}
+        <div class="d-flex align-items-center gap-2 ms-auto">
+            <span class="badge text-bg-secondary">{{ current_user.full_name }}</span>
+            <a href="/admin/logout" class="btn btn-sm btn-outline-light">Logout</a>
+        </div>
+        {% endif %}
     </div>
 </nav>
+{% if notifications %}
+<div class="container-fluid px-4">
+    {% for note in notifications %}
+    {% if note.level == 'critical' %}
+    <div class="alert alert-danger py-2 mb-2">
+        <strong>{{ note.title }}</strong> — {{ note.message }}
+        <a href="/admin/system/notifications" class="alert-link ms-2">Details</a>
+    </div>
+    {% endif %}
+    {% endfor %}
+</div>
+{% endif %}
 <main class="container-fluid px-4 pb-5">
     {% block content %}{% endblock %}
 </main>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.body.addEventListener('htmx:configRequest', function (event) {
+    const token = document.querySelector('meta[name="csrf-token"]');
+    if (token) event.detail.headers['X-CSRF-Token'] = token.content;
+});
+</script>
 </body>
 </html>

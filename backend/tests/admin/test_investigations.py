@@ -169,64 +169,53 @@ async def test_investigation_repository_filters(session: AsyncSession) -> None:
 
 
 @pytest.mark.asyncio
-async def test_investigations_api_endpoints(session: AsyncSession) -> None:
+async def test_investigations_api_endpoints(session: AsyncSession, admin_client: AsyncClient, admin_csrf: str) -> None:
     join_request = await seed_investigation_case(session, suffix="api")
-    from app.database.session import get_db_session
+    listing = await admin_client.get("/api/v1/admin/investigations")
+    assert listing.status_code == 200
+    assert listing.json()["total"] >= 1
 
-    async def override_get_db_session():
-        yield session
+    detail = await admin_client.get(f"/api/v1/admin/investigations/{join_request.id}")
+    assert detail.status_code == 200
+    body = detail.json()
+    assert body["id"] == str(join_request.id)
+    assert len(body["timeline"]) >= 1
 
-    app.dependency_overrides[get_db_session] = override_get_db_session
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        listing = await client.get("/api/v1/admin/investigations")
-        assert listing.status_code == 200
-        assert listing.json()["total"] >= 1
+    timeline = await admin_client.get(f"/api/v1/admin/investigations/{join_request.id}/timeline")
+    assert timeline.status_code == 200
 
-        detail = await client.get(f"/api/v1/admin/investigations/{join_request.id}")
-        assert detail.status_code == 200
-        body = detail.json()
-        assert body["id"] == str(join_request.id)
-        assert len(body["timeline"]) >= 1
+    export_json = await admin_client.get(
+        f"/api/v1/admin/investigations/{join_request.id}/export?format=json"
+    )
+    assert export_json.status_code == 200
+    assert export_json.headers["content-type"].startswith("application/json")
 
-        timeline = await client.get(f"/api/v1/admin/investigations/{join_request.id}/timeline")
-        assert timeline.status_code == 200
-
-        export_json = await client.get(
-            f"/api/v1/admin/investigations/{join_request.id}/export?format=json"
-        )
-        assert export_json.status_code == 200
-        assert export_json.headers["content-type"].startswith("application/json")
-
-        replay = await client.post(f"/api/v1/admin/investigations/{join_request.id}/replay")
-        assert replay.status_code == 200
-        assert replay.json()["final_decision"]
-    app.dependency_overrides.clear()
+    replay = await admin_client.post(
+        f"/api/v1/admin/investigations/{join_request.id}/replay",
+        headers={"X-CSRF-Token": admin_csrf},
+    )
+    assert replay.status_code == 200
+    assert replay.json()["final_decision"]
 
 
 @pytest.mark.asyncio
-async def test_investigations_web_pages(session: AsyncSession) -> None:
+async def test_investigations_web_pages(session: AsyncSession, admin_client: AsyncClient, admin_csrf: str) -> None:
     join_request = await seed_investigation_case(session, suffix="web")
-    from app.database.session import get_db_session
+    index = await admin_client.get("/admin/investigations")
+    assert index.status_code == 200
+    assert "Investigation Center" in index.text
 
-    async def override_get_db_session():
-        yield session
+    detail = await admin_client.get(f"/admin/join-request/{join_request.id}")
+    assert detail.status_code == 200
+    assert "Decision Timeline" in detail.text
+    assert "Export JSON" in detail.text
 
-    app.dependency_overrides[get_db_session] = override_get_db_session
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test", follow_redirects=False) as client:
-        index = await client.get("/admin/investigations")
-        assert index.status_code == 200
-        assert "Investigation Center" in index.text
-
-        detail = await client.get(f"/admin/join-request/{join_request.id}")
-        assert detail.status_code == 200
-        assert "Decision Timeline" in detail.text
-        assert "Export JSON" in detail.text
-
-        replay = await client.post(f"/admin/join-request/{join_request.id}/replay")
-        assert replay.status_code == 303
-    app.dependency_overrides.clear()
+    replay = await admin_client.post(
+        f"/admin/join-request/{join_request.id}/replay",
+        data={"csrf_token": admin_csrf},
+        follow_redirects=False,
+    )
+    assert replay.status_code == 303
 
 
 @pytest.mark.asyncio

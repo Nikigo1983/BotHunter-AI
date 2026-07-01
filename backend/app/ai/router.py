@@ -11,14 +11,17 @@ class AIRouter:
 
     @staticmethod
     def create_primary_provider() -> AIProvider:
+        from app.config.runtime_overrides import get_runtime_snapshot
+
+        snapshot = get_runtime_snapshot()
+        provider_name = snapshot.ai_provider.strip().lower()
         settings = get_settings()
-        provider_name = settings.ai_provider.strip().lower()
 
         if provider_name == "openrouter":
             if settings.openrouter_api_key:
                 from app.ai.openrouter_provider import OpenRouterProvider
 
-                return OpenRouterProvider()
+                return OpenRouterProvider(model=snapshot.openrouter_model)
             logger.warning(
                 "OpenRouter selected but OPENROUTER_API_KEY is missing; using MockAIProvider",
             )
@@ -28,7 +31,7 @@ class AIRouter:
             if settings.openai_api_key:
                 from app.ai.openai_provider import OpenAIProvider
 
-                return OpenAIProvider()
+                return OpenAIProvider(model=snapshot.openai_model)
             logger.warning(
                 "OpenAI selected but OPENAI_API_KEY is missing; using MockAIProvider",
             )

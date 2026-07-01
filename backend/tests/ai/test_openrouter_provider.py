@@ -225,7 +225,10 @@ def test_ai_router_selects_mock_without_openrouter_key(monkeypatch: pytest.Monke
 
 
 def test_ai_router_selects_openrouter_with_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.config.runtime_overrides import clear_runtime_snapshot
+
     get_settings.cache_clear()
+    clear_runtime_snapshot()
     monkeypatch.setenv("AI_PROVIDER", "openrouter")
     monkeypatch.setenv("OPENROUTER_API_KEY", "secret-key")
 

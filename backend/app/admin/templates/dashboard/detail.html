@@ -350,15 +350,19 @@
 
         <div class="d-flex flex-wrap gap-2">
             <form method="post" action="/admin/join-request/{{ detail.id }}/approve" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                 <button type="submit" class="btn btn-success" {% if detail.actions_disabled %}disabled{% endif %}>Approve</button>
             </form>
             <form method="post" action="/admin/join-request/{{ detail.id }}/reject" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                 <button type="submit" class="btn btn-danger" {% if detail.actions_disabled %}disabled{% endif %}>Reject</button>
             </form>
             <form method="post" action="/admin/join-request/{{ detail.id }}/whitelist" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                 <button type="submit" class="btn btn-outline-primary" {% if detail.whitelist_disabled %}disabled{% endif %}>Add to Whitelist</button>
             </form>
             <form method="post" action="/admin/join-request/{{ detail.id }}/blacklist" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                 <button type="submit" class="btn btn-outline-dark" {% if detail.blacklist_disabled %}disabled{% endif %}>Add to Blacklist</button>
             </form>
         </div>

@@ -1,0 +1,30 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Errors — BotHunter Admin{% endblock %}
+{% block content %}
+<h1 class="h3 mb-4">Error Center</h1>
+<div class="mb-3">
+    <a href="/admin/system/errors" class="btn btn-sm {% if not source_filter %}btn-dark{% else %}btn-outline-dark{% endif %}">All</a>
+    {% for src, count in counts.items() %}
+    <a href="/admin/system/errors?source={{ src }}" class="btn btn-sm {% if source_filter == src %}btn-danger{% else %}btn-outline-danger{% endif %}">{{ src }} ({{ count }})</a>
+    {% endfor %}
+</div>
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-sm mb-0">
+            <thead><tr><th>Time</th><th>Source</th><th>Message</th><th>Resolved</th></tr></thead>
+            <tbody>
+            {% for error in errors %}
+            <tr>
+                <td class="text-nowrap">{{ error.created_at }}</td>
+                <td><span class="badge text-bg-secondary">{{ error.source }}</span></td>
+                <td>{{ error.message }}</td>
+                <td>{% if error.resolved %}Yes{% else %}No{% endif %}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4" class="text-muted text-center py-4">No errors recorded.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

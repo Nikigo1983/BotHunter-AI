@@ -27,8 +27,13 @@ class AIService:
         settings = get_settings()
         self._provider = provider
         self._fallback_provider = fallback_provider
-        self._max_retries = max_retries if max_retries is not None else settings.ai_max_retries
-        self._timeout = timeout if timeout is not None else settings.ai_timeout
+        from app.config.runtime_overrides import get_runtime_snapshot
+
+        snapshot = get_runtime_snapshot()
+        self._max_retries = (
+            max_retries if max_retries is not None else snapshot.ai_max_retries
+        )
+        self._timeout = timeout if timeout is not None else snapshot.ai_timeout
 
     @staticmethod
     def _create_default_provider() -> AIProvider:
