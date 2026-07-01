@@ -1,0 +1,243 @@
+{% extends "dashboard/base.html" %}
+{% block title %}{{ channel.title }} — Channels{% endblock %}
+{% block content %}
+{% if flash %}
+<div class="alert alert-{{ 'success' if flash == 'success' else 'danger' }} alert-dismissible fade show" role="alert">
+    {{ flash_message or '' }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+
+<div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-3">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-2">
+                <li class="breadcrumb-item"><a href="/admin/channels">Channels</a></li>
+                <li class="breadcrumb-item active">{{ channel.title }}</li>
+            </ol>
+        </nav>
+        <h1 class="h3 mb-1">{{ channel.title }}</h1>
+        <div class="text-muted small">
+            {% if channel.username %}@{{ channel.username }} · {% endif %}
+            <code>{{ channel.telegram_chat_id }}</code>
+            · {% if channel.is_active %}<span class="text-success">Active</span>{% else %}<span class="text-secondary">Inactive</span>{% endif %}
+        </div>
+    </div>
+    <div class="d-flex gap-2">
+        {% if channel.is_active %}
+        <form method="post" action="/admin/channels/{{ channel.id }}/disable">
+            <button type="submit" class="btn btn-outline-danger btn-sm">Disable Channel</button>
+        </form>
+        {% else %}
+        <form method="post" action="/admin/channels/{{ channel.id }}/enable">
+            <button type="submit" class="btn btn-outline-success btn-sm">Enable Channel</button>
+        </form>
+        {% endif %}
+        <div class="btn-group btn-group-sm">
+            <a href="/admin/channels/{{ channel.id }}?days=7" class="btn btn-outline-secondary {% if timeline_days == 7 %}active{% endif %}">7d</a>
+            <a href="/admin/channels/{{ channel.id }}?days=30" class="btn btn-outline-secondary {% if timeline_days == 30 %}active{% endif %}">30d</a>
+            <a href="/admin/channels/{{ channel.id }}?days=90" class="btn btn-outline-secondary {% if timeline_days == 90 %}active{% endif %}">90d</a>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3"><div class="card shadow-sm h-100"><div class="card-body">
+        <div class="text-muted small">Подключён</div>
+        <div class="fw-semibold">{{ channel.created_at.strftime("%Y-%m-%d %H:%M") }} UTC</div>
+    </div></div></div>
+    <div class="col-md-3"><div class="card shadow-sm h-100"><div class="card-body">
+        <div class="text-muted small">Последняя активность</div>
+        <div class="fw-semibold">{% if channel.last_activity_at %}{{ channel.last_activity_at.strftime("%Y-%m-%d %H:%M") }} UTC{% else %}—{% endif %}</div>
+    </div></div></div>
+    <div class="col-md-3"><div class="card shadow-sm h-100"><div class="card-body">
+        <div class="text-muted small">Участники</div>
+        <div class="fw-semibold">{{ channel.member_count if channel.member_count is not none else "—" }}</div>
+    </div></div></div>
+    <div class="col-md-3"><div class="card shadow-sm h-100"><div class="card-body">
+        <div class="text-muted small">AI Accuracy</div>
+        <div class="fw-semibold">{{ channel.ai_accuracy_percent if channel.ai_accuracy_percent is not none else "—" }}{% if channel.ai_accuracy_percent is not none %}%{% endif %}</div>
+    </div></div></div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-2"><div class="card shadow-sm"><div class="card-body text-center">
+        <div class="text-muted small">Всего</div><div class="fs-4 fw-bold">{{ channel.total_requests }}</div>
+    </div></div></div>
+    <div class="col-md-2"><div class="card shadow-sm border-success"><div class="card-body text-center">
+        <div class="text-muted small">Approved</div><div class="fs-4 fw-bold text-success">{{ channel.approved }}</div>
+    </div></div></div>
+    <div class="col-md-2"><div class="card shadow-sm border-danger"><div class="card-body text-center">
+        <div class="text-muted small">Rejected</div><div class="fs-4 fw-bold text-danger">{{ channel.rejected }}</div>
+    </div></div></div>
+    <div class="col-md-2"><div class="card shadow-sm border-warning"><div class="card-body text-center">
+        <div class="text-muted small">Manual</div><div class="fs-4 fw-bold text-warning">{{ channel.manual_review }}</div>
+    </div></div></div>
+    <div class="col-md-2"><div class="card shadow-sm"><div class="card-body text-center">
+        <div class="text-muted small">Whitelist</div><div class="fs-4 fw-bold">{{ channel.whitelist_count }}</div>
+    </div></div></div>
+    <div class="col-md-2"><div class="card shadow-sm"><div class="card-body text-center">
+        <div class="text-muted small">Blacklist</div><div class="fs-4 fw-bold">{{ channel.blacklist_count }}</div>
+    </div></div></div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4"><div class="card shadow-sm"><div class="card-body">
+        <div class="text-muted small">Avg Rule Score</div><div class="fs-5 fw-bold">{{ channel.avg_rule_score if channel.avg_rule_score is not none else "—" }}</div>
+    </div></div></div>
+    <div class="col-md-4"><div class="card shadow-sm"><div class="card-body">
+        <div class="text-muted small">Avg AI Score</div><div class="fs-5 fw-bold">{{ channel.avg_ai_score if channel.avg_ai_score is not none else "—" }}</div>
+    </div></div></div>
+    <div class="col-md-4"><div class="card shadow-sm"><div class="card-body">
+        <div class="text-muted small">Avg Trust Score</div><div class="fs-5 fw-bold">{{ channel.avg_trust_score if channel.avg_trust_score is not none else "—" }}</div>
+    </div></div></div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header fw-semibold">Join Requests Timeline ({{ timeline_days }} days)</div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead class="table-light">
+                        <tr><th>Date</th><th>Total</th><th>Approved</th><th>Rejected</th><th>Manual</th></tr>
+                        </thead>
+                        <tbody>
+                        {% for point in channel.timeline %}
+                        <tr>
+                            <td>{{ point.date }}</td>
+                            <td>{{ point.total_requests }}</td>
+                            <td>{{ point.approved }}</td>
+                            <td>{{ point.rejected }}</td>
+                            <td>{{ point.manual_review }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="5" class="text-muted text-center py-3">Нет данных</td></tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header fw-semibold">AI Cost & Accuracy ({{ timeline_days }} days)</div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead class="table-light">
+                        <tr><th>Date</th><th>AI Calls</th><th>AI Cost</th><th>Accuracy</th><th>Feedback</th></tr>
+                        </thead>
+                        <tbody>
+                        {% for point in channel.timeline %}
+                        <tr>
+                            <td>{{ point.date }}</td>
+                            <td>{{ point.ai_calls }}</td>
+                            <td>${{ "%.4f"|format(point.ai_cost) }}</td>
+                            <td>{{ point.accuracy_percent if point.accuracy_percent is not none else "—" }}{% if point.accuracy_percent is not none %}%{% endif %}</td>
+                            <td>{{ point.feedback_count }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="5" class="text-muted text-center py-3">Нет данных</td></tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header fw-semibold">Settings</div>
+    <div class="card-body">
+        <form method="post" action="/admin/channels/{{ channel.id }}/settings" class="row g-3">
+            <div class="col-12">
+                <h6 class="text-muted text-uppercase small">Rule Engine</h6>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Auto Approve (Rule Score ≤)</label>
+                <input type="number" class="form-control" name="rule_auto_approve" min="0" max="100"
+                       value="{{ channel.settings.rule_auto_approve }}" required>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Auto Reject (Rule Score ≥)</label>
+                <input type="number" class="form-control" name="rule_auto_reject" min="0" max="100"
+                       value="{{ channel.settings.rule_auto_reject }}" required>
+            </div>
+            <div class="col-md-4">
+                <div class="form-text pt-4">Manual Review: {{ channel.settings.rule_auto_approve + 1 }}–{{ channel.settings.rule_auto_reject - 1 }}</div>
+            </div>
+            <div class="col-12 mt-2">
+                <h6 class="text-muted text-uppercase small">AI</h6>
+            </div>
+            <div class="col-md-6">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="ai_enabled" value="true" id="ai_enabled"
+                           {% if channel.settings.ai_enabled %}checked{% endif %}>
+                    <label class="form-check-label" for="ai_enabled">Use AI (иначе только Rule Engine)</label>
+                </div>
+            </div>
+            <div class="col-12 mt-2">
+                <h6 class="text-muted text-uppercase small">Reputation</h6>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Min Trust для Auto Approve</label>
+                <input type="number" class="form-control" name="trust_auto_approve" min="0" max="100"
+                       value="{{ channel.settings.trust_auto_approve }}" required>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Max Trust для Auto Reject (≤)</label>
+                <input type="number" class="form-control" name="trust_auto_reject" min="0" max="100"
+                       value="{{ channel.settings.trust_auto_reject }}" required>
+            </div>
+            <div class="col-12 mt-2">
+                <h6 class="text-muted text-uppercase small">Telegram</h6>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Join Request timeout (hours)</label>
+                <input type="number" class="form-control" name="join_request_timeout_hours" min="1" max="720"
+                       value="{{ channel.settings.join_request_timeout_hours or '' }}"
+                       placeholder="Не задано">
+            </div>
+            <div class="col-12">
+                <button type="submit" class="btn btn-primary">Save Settings</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-header fw-semibold">Последние 20 Join Requests</div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-sm mb-0">
+                <thead class="table-light">
+                <tr>
+                    <th>Date</th><th>Telegram ID</th><th>Username</th><th>Status</th>
+                    <th>Rule</th><th>AI</th><th>Final</th><th></th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for item in channel.recent_requests %}
+                <tr>
+                    <td>{{ item.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
+                    <td>{{ item.telegram_id }}</td>
+                    <td>{% if item.username %}@{{ item.username }}{% else %}—{% endif %}</td>
+                    <td><span class="badge text-bg-{{ status_badge_class(item.status) }}">{{ item.status }}</span></td>
+                    <td>{{ item.rule_score if item.rule_score is not none else "—" }}</td>
+                    <td>{{ item.ai_score if item.ai_score is not none else "—" }}</td>
+                    <td>{{ item.final_score if item.final_score is not none else "—" }}</td>
+                    <td><a href="/admin/join-request/{{ item.id }}">Open</a></td>
+                </tr>
+                {% else %}
+                <tr><td colspan="8" class="text-muted text-center py-3">Нет заявок</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

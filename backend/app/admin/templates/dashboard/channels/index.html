@@ -1,0 +1,67 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Channels — BotHunter Admin{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">Channel Management</h1>
+    <span class="text-muted">{{ channels | length }} канал(ов)</span>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                <tr>
+                    <th>Канал</th>
+                    <th>Chat ID</th>
+                    <th>Username</th>
+                    <th>Статус</th>
+                    <th>Подключён</th>
+                    <th>Заявки</th>
+                    <th>Approved</th>
+                    <th>Rejected</th>
+                    <th>Manual</th>
+                    <th>Avg Rule</th>
+                    <th>Avg AI</th>
+                    <th>Avg Trust</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for item in channels %}
+                <tr>
+                    <td>
+                        <a href="/admin/channels/{{ item.id }}" class="fw-semibold text-decoration-none">
+                            {{ item.title }}
+                        </a>
+                    </td>
+                    <td><code>{{ item.telegram_chat_id }}</code></td>
+                    <td>{% if item.username %}@{{ item.username }}{% else %}—{% endif %}</td>
+                    <td>
+                        {% if item.is_active %}
+                        <span class="badge text-bg-success">Active</span>
+                        {% else %}
+                        <span class="badge text-bg-secondary">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td class="small">{{ item.created_at.strftime("%Y-%m-%d %H:%M") }} UTC</td>
+                    <td>{{ item.total_requests }}</td>
+                    <td>{{ item.approved }}</td>
+                    <td>{{ item.rejected }}</td>
+                    <td>{{ item.manual_review }}</td>
+                    <td>{{ item.avg_rule_score if item.avg_rule_score is not none else "—" }}</td>
+                    <td>{{ item.avg_ai_score if item.avg_ai_score is not none else "—" }}</td>
+                    <td>{{ item.avg_trust_score if item.avg_trust_score is not none else "—" }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="12" class="text-center text-muted py-4">
+                        Нет подключённых каналов. Подключите канал через Telegram-бота.
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

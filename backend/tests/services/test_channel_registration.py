@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.channel_connection_error import ChannelConnectionError
 from app.repositories.deps import (
     get_channel_connection_error_repository,
+    get_channel_settings_repository,
     get_telegram_channel_repository,
 )
 from app.services.channel_registration import ChannelRegistrationService
@@ -99,6 +100,12 @@ async def test_register_channel_success(
     stored = await channel_repo.get_by_telegram_chat_id(channel_id)
     assert stored is not None
     assert stored.is_active is True
+    assert stored.username == "testchannel"
+
+    settings_repo = get_channel_settings_repository(session)
+    settings = await settings_repo.get_by_channel_id(stored.id)
+    assert settings is not None
+    assert settings.ai_enabled is True
 
 
 @pytest.mark.asyncio

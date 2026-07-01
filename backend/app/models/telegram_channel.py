@@ -11,6 +11,7 @@ from app.database.base import Base
 from app.models.mixins import CreatedAtMixin, UUIDPrimaryKeyMixin
 
 if TYPE_CHECKING:
+    from app.models.channel_settings import ChannelSettings
     from app.models.join_request import JoinRequest
     from app.models.telegram_bot import TelegramBot
     from app.models.user import User
@@ -38,11 +39,17 @@ class TelegramChannel(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
     )
     telegram_chat_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
+    username: Mapped[str | None] = mapped_column(String(255), nullable=True)
     invite_link: Mapped[str | None] = mapped_column(String(512), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
     owner: Mapped[User] = relationship(back_populates="telegram_channels")
     bot: Mapped[TelegramBot] = relationship(back_populates="channels")
+    settings: Mapped[ChannelSettings | None] = relationship(
+        back_populates="channel",
+        cascade="all, delete-orphan",
+        uselist=False,
+    )
     join_requests: Mapped[list[JoinRequest]] = relationship(
         back_populates="channel",
         cascade="all, delete-orphan",

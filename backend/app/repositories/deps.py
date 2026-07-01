@@ -11,7 +11,10 @@ from app.repositories.analytics import AnalyticsRepository
 from app.repositories.audit_log import AuditLogRepository
 from app.repositories.base import BaseRepository
 from app.repositories.blacklist import BlacklistRepository
+from app.repositories.channel import ChannelRepository
 from app.repositories.channel_connection_error import ChannelConnectionErrorRepository
+from app.repositories.channel_settings import ChannelSettingsRepository
+from app.repositories.channel_statistics import ChannelStatisticsRepository
 from app.repositories.join_request import JoinRequestRepository
 from app.repositories.manual_review import ManualReviewRepository
 from app.repositories.reputation import ReputationRepository
@@ -33,6 +36,10 @@ def get_telegram_bot_repository(session: AsyncSession) -> TelegramBotRepository:
 
 def get_telegram_channel_repository(session: AsyncSession) -> TelegramChannelRepository:
     return TelegramChannelRepository(session)
+
+
+def get_channel_repository(session: AsyncSession) -> ChannelRepository:
+    return ChannelRepository(session)
 
 
 def get_telegram_user_repository(session: AsyncSession) -> TelegramUserRepository:
@@ -91,6 +98,14 @@ def get_channel_connection_error_repository(
     session: AsyncSession,
 ) -> ChannelConnectionErrorRepository:
     return ChannelConnectionErrorRepository(session)
+
+
+def get_channel_settings_repository(session: AsyncSession) -> ChannelSettingsRepository:
+    return ChannelSettingsRepository(session)
+
+
+def get_channel_statistics_repository(session: AsyncSession) -> ChannelStatisticsRepository:
+    return ChannelStatisticsRepository(session)
 
 
 RepositoryFactory = Callable[[AsyncSession], BaseRepository]

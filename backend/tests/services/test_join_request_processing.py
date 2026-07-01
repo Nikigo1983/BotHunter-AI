@@ -372,3 +372,37 @@ async def test_process_join_request_auto_reject_by_reputation(session: AsyncSess
     mock_bot.decline_chat_join_request.assert_awaited_once()
     mock_bot.approve_chat_join_request.assert_not_called()
 
+
+@pytest.mark.asyncio
+async def test_process_join_request_ignores_inactive_channel(session: AsyncSession) -> None:
+    chat_id = -100700012
+    channel = await create_registered_channel(session, chat_id)
+    channel.is_active = False
+    channel_repo = get_telegram_channel_repository(session)
+    await channel_repo.update(channel)
+
+    mock_bot = AsyncMock()
+    service = make_service(session, mock_bot)
+    result = await service.process(make_join_request_event(chat_id=chat_id, user_id=900012))
+
+    assert result is None
+    mock_bot.approve_chat_join_request.assert_not_called()
+    mock_bot.decline_chat_join_request.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_process_join_request_ignores_inactive_channel(session: AsyncSession) -> None:
+    chat_id = -100700012
+    channel = await create_registered_channel(session, chat_id)
+    channel.is_active = False
+    channel_repo = get_telegram_channel_repository(session)
+    await channel_repo.update(channel)
+
+    mock_bot = AsyncMock()
+    service = make_service(session, mock_bot)
+    result = await service.process(make_join_request_event(chat_id=chat_id, user_id=900012))
+
+    assert result is None
+    mock_bot.approve_chat_join_request.assert_not_called()
+    mock_bot.decline_chat_join_request.assert_not_called()
+

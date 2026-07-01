@@ -4,6 +4,7 @@ from app.models.ai_usage import AIUsage
 from app.models.audit_log import AuditLog
 from app.models.blacklist import Blacklist
 from app.models.channel_connection_error import ChannelConnectionError
+from app.models.channel_settings import ChannelSettings
 from app.models.enums import AnalysisDecision, JoinRequestStatus
 from app.models.join_request import JoinRequest
 from app.models.manual_review import AdminAction, ManualReview
@@ -24,6 +25,7 @@ __all__ = [
     "AuditLog",
     "Blacklist",
     "ChannelConnectionError",
+    "ChannelSettings",
     "JoinRequest",
     "JoinRequestStatus",
     "ManualReview",

@@ -8,6 +8,8 @@ Web Admin Dashboard позволяет просматривать и обраб�
 
 OpenAI **не используется** в dashboard.
 
+**v1.8:** Channel Management — `/admin/channels`, per-channel settings in DB, enable/disable, REST API.
+
 **v1.7:** AI Analytics & Feedback Center — `/admin/analytics`, accuracy, rules, providers, timeline, Decision Inspector.
 
 **v1.6:** Hybrid Explainability — deterministic + GPT signals, risk scale.
@@ -47,6 +49,8 @@ flowchart LR
 | URL | Описание |
 |-----|----------|
 | `/admin` | Список заявок, статистика, фильтры, поиск, пагинация (25) |
+| `/admin/channels` | Список подключённых каналов (v1.8) |
+| `/admin/channels/{id}` | Карточка канала: stats, timeline, settings, enable/disable (v1.8) |
 | `/admin/analytics` | AI Analytics & Feedback Center (v1.7) |
 | `/admin/join-request/{id}` | Детальная карточка + действия + Decision Inspector |
 | `/admin/partials/join-requests` | HTMX partial для таблицы |

@@ -88,6 +88,14 @@ class JoinRequestProcessingService:
             )
             return None
 
+        if not channel.is_active:
+            logger.info(
+                "Join request ignored: channel disabled | channel_id=%s | chat_id=%s",
+                channel.id,
+                event.chat.id,
+            )
+            return None
+
         telegram_user = await self._upsert_telegram_user(event.from_user)
         join_request = await self._join_request_repo.create(
             JoinRequest(

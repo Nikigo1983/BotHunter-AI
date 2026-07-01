@@ -3,13 +3,15 @@ import json
 import uuid
 from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.schemas.channel_management import ChannelSettingsUpdateRequest
 from app.database.session import get_db_session
 from app.repositories.admin_dashboard import StatusFilter
+from app.services.admin_channel import AdminChannelService
 from app.services.admin_ai import AdminAIService
 from app.services.analytics import AnalyticsService
 from app.services.admin_dashboard import AdminDashboardService, PAGE_SIZE
@@ -44,6 +46,12 @@ async def get_analytics_service(
     session: AsyncSession = Depends(get_db_session),
 ) -> AnalyticsService:
     return AnalyticsService(session)
+
+
+async def get_channel_service(
+    session: AsyncSession = Depends(get_db_session),
+) -> AdminChannelService:
+    return AdminChannelService(session)
 
 
 def status_badge_class(status: str) -> str:
@@ -321,6 +329,114 @@ async def admin_analytics(
             "timeline_days": days if days in {7, 30, 90} else 30,
         },
     )
+
+
+def _parse_channel_id(channel_id: str) -> uuid.UUID:
+    try:
+        return uuid.UUID(channel_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail="Channel not found") from exc
+
+
+def _redirect_to_channel(channel_id: uuid.UUID, *, flash: str, msg: str) -> RedirectResponse:
+    url = f"/admin/channels/{channel_id}?flash={flash}&msg={quote(msg)}"
+    return RedirectResponse(url=url, status_code=303)
+
+
+@router.get("/channels", response_class=HTMLResponse)
+async def admin_channels_list(
+    request: Request,
+    service: AdminChannelService = Depends(get_channel_service),
+) -> HTMLResponse:
+    channels = await service.list_channels()
+    return ADMIN_TEMPLATES.TemplateResponse(
+        request,
+        "dashboard/channels/index.html",
+        {"channels": channels},
+    )
+
+
+@router.get("/channels/{channel_id}", response_class=HTMLResponse)
+async def admin_channel_detail(
+    request: Request,
+    channel_id: str,
+    days: int = Query(default=30, ge=7, le=90),
+    flash: str | None = Query(default=None),
+    msg: str | None = Query(default=None),
+    service: AdminChannelService = Depends(get_channel_service),
+) -> HTMLResponse:
+    parsed_id = _parse_channel_id(channel_id)
+    detail = await service.get_channel_detail(parsed_id, timeline_days=days)
+    if detail is None:
+        raise HTTPException(status_code=404, detail="Channel not found")
+    return ADMIN_TEMPLATES.TemplateResponse(
+        request,
+        "dashboard/channels/detail.html",
+        {
+            "channel": detail,
+            "timeline_days": days if days in {7, 30, 90} else 30,
+            "flash": flash,
+            "flash_message": msg,
+        },
+    )
+
+
+@router.post("/channels/{channel_id}/settings")
+async def admin_channel_settings_update(
+    channel_id: str,
+    ai_enabled: bool = Form(...),
+    rule_auto_approve: int = Form(...),
+    rule_auto_reject: int = Form(...),
+    trust_auto_approve: int = Form(...),
+    trust_auto_reject: int = Form(...),
+    join_request_timeout_hours: str = Form(default=""),
+    service: AdminChannelService = Depends(get_channel_service),
+) -> RedirectResponse:
+    parsed_id = _parse_channel_id(channel_id)
+    if rule_auto_reject <= rule_auto_approve:
+        return _redirect_to_channel(
+            parsed_id,
+            flash="error",
+            msg="Auto Reject порог должен быть больше Auto Approve",
+        )
+    timeout_raw = join_request_timeout_hours.strip()
+    timeout_value = int(timeout_raw) if timeout_raw else None
+    payload = ChannelSettingsUpdateRequest(
+        ai_enabled=ai_enabled,
+        rule_auto_approve=rule_auto_approve,
+        rule_auto_reject=rule_auto_reject,
+        trust_auto_approve=trust_auto_approve,
+        trust_auto_reject=trust_auto_reject,
+        join_request_timeout_hours=timeout_value,
+    )
+    detail = await service.update_channel(parsed_id, payload)
+    if detail is None:
+        raise HTTPException(status_code=404, detail="Channel not found")
+    return _redirect_to_channel(parsed_id, flash="success", msg="Настройки канала сохранены")
+
+
+@router.post("/channels/{channel_id}/disable")
+async def admin_channel_disable(
+    channel_id: str,
+    service: AdminChannelService = Depends(get_channel_service),
+) -> RedirectResponse:
+    parsed_id = _parse_channel_id(channel_id)
+    detail = await service.set_channel_active(parsed_id, is_active=False)
+    if detail is None:
+        raise HTTPException(status_code=404, detail="Channel not found")
+    return _redirect_to_channel(parsed_id, flash="success", msg="Канал отключён")
+
+
+@router.post("/channels/{channel_id}/enable")
+async def admin_channel_enable(
+    channel_id: str,
+    service: AdminChannelService = Depends(get_channel_service),
+) -> RedirectResponse:
+    parsed_id = _parse_channel_id(channel_id)
+    detail = await service.set_channel_active(parsed_id, is_active=True)
+    if detail is None:
+        raise HTTPException(status_code=404, detail="Channel not found")
+    return _redirect_to_channel(parsed_id, flash="success", msg="Канал включён")
 
 
 @router.get("/settings/ai", response_class=HTMLResponse)

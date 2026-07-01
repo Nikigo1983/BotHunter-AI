@@ -1,5 +1,29 @@
 # BotHunter AI — Changelog
 
+## [1.8.0] — 2026-06-30
+
+### Added
+
+- **Channel Management & Configuration Center** — `/admin/channels`, `/admin/channels/{id}`.
+- Таблица `channel_settings` — per-channel AI flag, rule/reputation thresholds, join request timeout.
+- `ChannelRepository`, `ChannelSettingsRepository`, `ChannelStatisticsRepository`.
+- `AdminChannelService` — list, detail, statistics, settings update, enable/disable.
+- REST API: `GET/PATCH /api/v1/admin/channels`, `GET .../statistics`.
+- Dashboard menu: Join Requests → **Channels** → Analytics → AI Usage → AI Settings.
+- Enable/Disable channel — inactive channels ignore new join requests; history preserved.
+- Channel registration saves `username` and creates default settings.
+- Channel timeline: join requests + AI cost + accuracy (7/30/90 days).
+- Documentation: `docs/channel_management.md`, `docs/api.md`; updated `dashboard.md`, `architecture.md`.
+- Tests: channels service, API, web, repository, inactive channel processing.
+
+### Not changed (by design)
+
+- Rule Engine, AI Gateway, OpenRouter, Reputation Engine logic
+- Join Pipeline decision flow (except `is_active` guard)
+- Global Analytics (`/admin/analytics`)
+
+---
+
 ## [1.7.0] — 2026-06-30
 
 ### Added

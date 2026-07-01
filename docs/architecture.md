@@ -4,7 +4,7 @@
 
 BotHunter AI follows clean architecture with clear separation of concerns.
 
-**Текущая версия:** v1.7 — AI Analytics & Feedback Center.
+**Текущая версия:** v1.8 — Channel Management & Configuration Center.
 
 ## Layers
 
@@ -43,7 +43,8 @@ Infrastructure →  database/, repositories/, config/, ai/, utils/
 |--------|------------|
 | `User` | Пользователь платформы |
 | `TelegramBot` | Бот пользователя |
-| `TelegramChannel` | Подключённый канал |
+| `TelegramChannel` | Подключённый канал (+ `username`, `is_active`, settings v1.8) |
+| `ChannelSettings` | Per-channel thresholds и flags (v1.8) |
 | `TelegramUser` | Telegram-пользователь, проходивший проверку |
 | `JoinRequest` | Заявка на вступление |
 | `AIAnalysis` | Результат AI-анализа |

@@ -14,6 +14,7 @@ from app.models.telegram_channel import TelegramChannel
 from app.models.user import User
 from app.repositories.deps import (
     get_channel_connection_error_repository,
+    get_channel_settings_repository,
     get_telegram_bot_repository,
     get_telegram_channel_repository,
     get_user_repository,
@@ -47,6 +48,7 @@ class ChannelRegistrationService:
         self._user_repo = get_user_repository(session)
         self._bot_repo = get_telegram_bot_repository(session)
         self._channel_repo = get_telegram_channel_repository(session)
+        self._settings_repo = get_channel_settings_repository(session)
         self._error_repo = get_channel_connection_error_repository(session)
 
     @staticmethod
@@ -111,10 +113,12 @@ class ChannelRegistrationService:
                 bot_id=platform_bot.id,
                 telegram_chat_id=parsed_channel_id,
                 title=chat.title or "Без названия",
+                username=chat.username,
                 invite_link=invite_link,
                 is_active=True,
             )
         )
+        await self._settings_repo.get_or_create(channel.id)
 
         logger.info(
             "Channel connected | telegram_chat_id=%s | owner_telegram_id=%s",
