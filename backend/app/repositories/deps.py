@@ -15,6 +15,7 @@ from app.repositories.channel import ChannelRepository
 from app.repositories.channel_connection_error import ChannelConnectionErrorRepository
 from app.repositories.channel_settings import ChannelSettingsRepository
 from app.repositories.channel_statistics import ChannelStatisticsRepository
+from app.repositories.investigation import InvestigationRepository
 from app.repositories.join_request import JoinRequestRepository
 from app.repositories.manual_review import ManualReviewRepository
 from app.repositories.reputation import ReputationRepository
@@ -52,6 +53,10 @@ def get_manual_review_repository(session: AsyncSession) -> ManualReviewRepositor
 
 def get_ai_feedback_repository(session: AsyncSession) -> AIFeedbackRepository:
     return AIFeedbackRepository(session)
+
+
+def get_investigation_repository(session: AsyncSession) -> InvestigationRepository:
+    return InvestigationRepository(session)
 
 
 def get_join_request_repository(session: AsyncSession) -> JoinRequestRepository:

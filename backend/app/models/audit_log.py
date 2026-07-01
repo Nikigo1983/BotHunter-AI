@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import Index, String
+from sqlalchemy import Index, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -23,3 +23,4 @@ class AuditLog(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
     action: Mapped[str] = mapped_column(String(128), nullable=False)
     entity: Mapped[str] = mapped_column(String(128), nullable=False)
     entity_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    details: Mapped[str | None] = mapped_column(Text, nullable=True)

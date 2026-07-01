@@ -1,0 +1,149 @@
+{% if investigation %}
+<div class="card shadow-sm mb-4 border-primary">
+    <div class="card-header fw-semibold d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <span>Investigation Center</span>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="/admin/join-request/{{ detail.id }}/export/json" class="btn btn-sm btn-outline-secondary">Export JSON</a>
+            <a href="/admin/join-request/{{ detail.id }}/export/pdf" class="btn btn-sm btn-outline-secondary">Export PDF</a>
+            <form method="post" action="/admin/join-request/{{ detail.id }}/replay" class="d-inline">
+                <button type="submit" class="btn btn-sm btn-outline-warning">Replay Analysis</button>
+            </form>
+        </div>
+    </div>
+    <div class="card-body">
+        {% if replay %}
+        <div class="alert alert-warning">
+            <div class="fw-semibold mb-2">Replay Result (не сохранено в БД)</div>
+            <div class="small">Rule {{ replay.rule_score }} → {{ format_decision_label(replay.rule_engine_decision) }}
+                · AI {{ replay.ai_status }} → {{ format_decision_label(replay.ai_decision) if replay.ai_decision else "—" }}
+                · Final {{ format_decision_label(replay.final_decision) }}</div>
+        </div>
+        {% endif %}
+
+        <div class="card mb-4 border-{{ investigation.decision_flow.verdict_class or 'secondary' }}">
+            <div class="card-header fw-semibold">Decision Comparator</div>
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-center gap-2 flex-wrap text-center">
+                    <div><div class="small text-muted">Rule Engine</div><span class="badge text-bg-secondary">{{ format_decision_label(investigation.decision_flow.rule_engine_decision) if investigation.decision_flow.rule_engine_decision else "—" }}</span></div>
+                    <div class="text-muted">↓</div>
+                    <div><div class="small text-muted">AI</div><span class="badge text-bg-{{ decision_badge_class(investigation.decision_flow.ai_decision) }}">{{ format_decision_label(investigation.decision_flow.ai_decision) if investigation.decision_flow.ai_decision else "—" }}</span></div>
+                    <div class="text-muted">↓</div>
+                    <div><div class="small text-muted">Final</div><span class="badge text-bg-{{ decision_badge_class(investigation.decision_flow.final_decision) }}">{{ format_decision_label(investigation.decision_flow.final_decision) if investigation.decision_flow.final_decision else "—" }}</span></div>
+                    <div class="text-muted">↓</div>
+                    <div><div class="small text-muted">Human</div><span class="badge text-bg-{{ decision_badge_class(investigation.decision_flow.human_decision) }}">{{ format_decision_label(investigation.decision_flow.human_decision) if investigation.decision_flow.human_decision else "—" }}</span></div>
+                </div>
+                {% if investigation.decision_flow.verdict %}
+                <div class="alert alert-{{ investigation.decision_flow.verdict_class }} mt-3 mb-0 text-center fw-semibold">{{ investigation.decision_flow.verdict }}</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-lg-6">
+                <div class="card h-100">
+                    <div class="card-header fw-semibold">Decision Timeline</div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-sm mb-0">
+                                <thead class="table-light"><tr><th>Stage</th><th>Time (UTC)</th><th>Duration</th><th>Result</th></tr></thead>
+                                <tbody>
+                                {% for event in investigation.timeline %}
+                                <tr>
+                                    <td>{{ event.title }}</td>
+                                    <td>{{ event.timestamp.strftime("%Y-%m-%d %H:%M:%S") if event.timestamp else "—" }}</td>
+                                    <td>{% if event.duration_ms is not none %}{{ event.duration_ms }} ms{% else %}—{% endif %}</td>
+                                    <td>{{ event.result or "—" }}</td>
+                                </tr>
+                                {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="card h-100">
+                    <div class="card-header fw-semibold">Rule Inspector</div>
+                    <div class="card-body">
+                        {% for rule in investigation.rule_inspection %}
+                        <div class="border rounded p-2 mb-2 {% if rule.matched %}border-success{% else %}border-light{% endif %}">
+                            <div class="fw-semibold">{{ rule.rule }}</div>
+                            <div class="small text-muted">Condition: <code>{{ rule.condition }}</code></div>
+                            <div class="small">{{ rule.description }}</div>
+                            <div class="small mt-1">
+                                {% if rule.matched %}<span class="text-success fw-semibold">Matched</span>{% else %}<span class="text-muted">Not matched</span>{% endif %}
+                                · Contribution: +{{ rule.contribution }}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4 mt-1">
+            <div class="col-lg-6">
+                <div class="card h-100">
+                    <div class="card-header fw-semibold">Prompt</div>
+                    <div class="card-body">
+                        {% if investigation.prompt %}
+                        <div class="mb-3">
+                            <div class="explanation-section-title">System Prompt</div>
+                            <pre class="feature-json small mb-0">{{ investigation.prompt.system_prompt }}</pre>
+                        </div>
+                        <div>
+                            <div class="explanation-section-title">User Prompt</div>
+                            <pre class="feature-json small mb-0">{{ investigation.prompt.user_prompt }}</pre>
+                        </div>
+                        {% else %}
+                        <div class="text-muted">Prompt недоступен для этого кейса (AI skipped или legacy path).</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="card h-100">
+                    <div class="card-header fw-semibold">AI Response Viewer</div>
+                    <div class="card-body">
+                        <div class="explanation-section-title">Parsed Response</div>
+                        {% if investigation.ai_response.parsed_response %}
+                        <pre class="feature-json small">{{ investigation.ai_response.parsed_response | tojson(indent=2) }}</pre>
+                        {% else %}
+                        <div class="text-muted small mb-3">Parsed response отсутствует</div>
+                        {% endif %}
+                        <div class="explanation-section-title mt-3">Raw JSON</div>
+                        {% if investigation.ai_response.raw_json %}
+                        <pre class="feature-json small">{{ investigation.ai_response.raw_json }}</pre>
+                        {% else %}
+                        <div class="text-muted small">Raw JSON отсутствует</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if investigation.audit_logs %}
+        <div class="card mt-4">
+            <div class="card-header fw-semibold">Audit Log</div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead class="table-light"><tr><th>Time</th><th>Actor</th><th>Action</th><th>Details</th></tr></thead>
+                        <tbody>
+                        {% for log in investigation.audit_logs %}
+                        <tr>
+                            <td>{{ log.created_at.strftime("%Y-%m-%d %H:%M:%S") }}</td>
+                            <td>{{ log.actor }}</td>
+                            <td><code>{{ log.action }}</code></td>
+                            <td class="small">{{ log.details or "—" }}</td>
+                        </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}

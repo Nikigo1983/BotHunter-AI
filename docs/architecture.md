@@ -4,7 +4,7 @@
 
 BotHunter AI follows clean architecture with clear separation of concerns.
 
-**Текущая версия:** v1.8 — Channel Management & Configuration Center.
+**Текущая версия:** v1.9 — Investigation Center & Decision Audit.
 
 ## Layers
 
@@ -65,6 +65,15 @@ Infrastructure →  database/, repositories/, config/, ai/, utils/
 - DI через factory-функции в `repositories/deps.py`.
 
 Подробности: [docs/repositories.md](repositories.md).
+
+## Investigation Center (v1.9)
+
+- `InvestigationRepository`, `InvestigationService`
+- Timeline, Rule Inspector, Prompt/Response viewers
+- Replay (no DB/Telegram side effects) + Export JSON/PDF
+- Extended `audit_logs.details`
+
+See [docs/investigation_center.md](investigation_center.md).
 
 ## Channel registration (v1.0-beta)
 

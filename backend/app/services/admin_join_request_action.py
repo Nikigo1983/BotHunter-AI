@@ -365,6 +365,7 @@ class AdminJoinRequestActionService:
         action: str,
         entity_id: uuid.UUID,
         error: str | None = None,
+        details: str | None = None,
     ) -> None:
         audit_action = f"{action}_error" if error else action
         await self._audit_log_repo.create(
@@ -373,6 +374,7 @@ class AdminJoinRequestActionService:
                 action=audit_action,
                 entity="join_request",
                 entity_id=entity_id,
+                details=details,
             )
         )
 

@@ -6,6 +6,22 @@ OpenAPI: `/docs`
 
 ---
 
+## Admin — Investigations (v1.9)
+
+Prefix: `/admin/investigations`
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `` | List investigations |
+| GET | `/{id}` | Case detail |
+| GET | `/{id}/timeline` | Decision timeline |
+| GET | `/{id}/export?format=json\|pdf` | Export case |
+| POST | `/{id}/replay` | Replay AI analysis |
+
+See [docs/investigation_center.md](investigation_center.md).
+
+---
+
 ## Admin — Channels (v1.8)
 
 Prefix: `/admin/channels`

@@ -22,6 +22,7 @@ pydantic-settings==2.7.0
 # Utils
 python-dotenv==1.0.1
 PyYAML==6.0.2
+reportlab==4.2.5
 
 # AI
 openai==1.59.6

@@ -1,21 +1,24 @@
 from pathlib import Path
 import json
 import uuid
+from datetime import datetime
 from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.schemas.channel_management import ChannelSettingsUpdateRequest
 from app.database.session import get_db_session
+from app.models.enums import AnalysisDecision
 from app.repositories.admin_dashboard import StatusFilter
+from app.schemas.channel_management import ChannelSettingsUpdateRequest
 from app.services.admin_channel import AdminChannelService
 from app.services.admin_ai import AdminAIService
 from app.services.analytics import AnalyticsService
 from app.services.admin_dashboard import AdminDashboardService, PAGE_SIZE
 from app.services.admin_join_request_action import AdminJoinRequestActionService
+from app.services.investigation import InvestigationService
 
 ADMIN_TEMPLATES = Jinja2Templates(
     directory=str(Path(__file__).resolve().parent / "templates"),
@@ -52,6 +55,12 @@ async def get_channel_service(
     session: AsyncSession = Depends(get_db_session),
 ) -> AdminChannelService:
     return AdminChannelService(session)
+
+
+async def get_investigation_service(
+    session: AsyncSession = Depends(get_db_session),
+) -> InvestigationService:
+    return InvestigationService(session)
 
 
 def status_badge_class(status: str) -> str:
@@ -242,19 +251,157 @@ async def admin_join_request_detail(
     flash: str | None = Query(default=None),
     msg: str | None = Query(default=None),
     service: AdminDashboardService = Depends(get_admin_service),
+    investigation_service: InvestigationService = Depends(get_investigation_service),
 ) -> HTMLResponse:
     parsed_id = _parse_join_request_id(join_request_id)
     detail = await service.get_join_request_detail(parsed_id)
     if detail is None:
         raise HTTPException(status_code=404, detail="Join request not found")
 
+    investigation = await investigation_service.get_investigation_detail(parsed_id)
+    replay = None
+    if flash == "replay" and msg:
+        try:
+            replay = json.loads(msg)
+        except json.JSONDecodeError:
+            replay = None
+
     return ADMIN_TEMPLATES.TemplateResponse(
         request,
         "dashboard/detail.html",
         {
             "detail": detail,
+            "investigation": investigation,
+            "replay": replay,
             "flash": flash,
-            "flash_message": msg,
+            "flash_message": msg if flash != "replay" else None,
+        },
+    )
+
+
+@router.post("/join-request/{join_request_id}/replay")
+async def admin_replay_action(
+    join_request_id: str,
+    investigation_service: InvestigationService = Depends(get_investigation_service),
+) -> RedirectResponse:
+    parsed_id = _parse_join_request_id(join_request_id)
+    replay = await investigation_service.replay_analysis(parsed_id)
+    if replay is None:
+        raise HTTPException(status_code=404, detail="Join request not found")
+    payload = quote(json.dumps(
+        {
+            "rule_score": replay.rule_score,
+            "rule_engine_decision": replay.rule_engine_decision,
+            "ai_status": replay.ai_status,
+            "ai_decision": replay.ai_decision,
+            "ai_score": replay.ai_score,
+            "final_decision": replay.final_decision,
+        },
+        ensure_ascii=False,
+        default=str,
+    ))
+    url = f"/admin/join-request/{parsed_id}?flash=replay&msg={payload}"
+    return RedirectResponse(url=url, status_code=303)
+
+
+@router.get("/join-request/{join_request_id}/export/json")
+async def admin_export_json(
+    join_request_id: str,
+    investigation_service: InvestigationService = Depends(get_investigation_service),
+) -> Response:
+    parsed_id = _parse_join_request_id(join_request_id)
+    exported = await investigation_service.export_case(parsed_id, export_format="json")
+    if exported is None:
+        raise HTTPException(status_code=404, detail="Join request not found")
+    content, media_type, filename = exported
+    return Response(
+        content=content,
+        media_type=media_type,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.get("/join-request/{join_request_id}/export/pdf")
+async def admin_export_pdf(
+    join_request_id: str,
+    investigation_service: InvestigationService = Depends(get_investigation_service),
+) -> Response:
+    parsed_id = _parse_join_request_id(join_request_id)
+    exported = await investigation_service.export_case(parsed_id, export_format="pdf")
+    if exported is None:
+        raise HTTPException(status_code=404, detail="Join request not found")
+    content, media_type, filename = exported
+    return Response(
+        content=content,
+        media_type=media_type,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.get("/investigations", response_class=HTMLResponse)
+async def admin_investigations(
+    request: Request,
+    channel_id: str | None = Query(default=None),
+    status: StatusFilter = Query(default="all"),
+    ai_decision: AnalysisDecision | None = Query(default=None),
+    human_decision: AnalysisDecision | None = Query(default=None),
+    trust_min: float | None = Query(default=None),
+    trust_max: float | None = Query(default=None),
+    rule_min: float | None = Query(default=None),
+    rule_max: float | None = Query(default=None),
+    ai_min: float | None = Query(default=None),
+    ai_max: float | None = Query(default=None),
+    date_from: datetime | None = Query(default=None),
+    date_to: datetime | None = Query(default=None),
+    search: str | None = Query(default=None),
+    page: int = Query(default=1, ge=1),
+    service: InvestigationService = Depends(get_investigation_service),
+) -> HTMLResponse:
+    parsed_channel_id = None
+    if channel_id:
+        try:
+            parsed_channel_id = uuid.UUID(channel_id)
+        except ValueError:
+            parsed_channel_id = None
+    filters = InvestigationService.build_filters(
+        channel_id=parsed_channel_id,
+        status=status,
+        ai_decision=ai_decision,
+        human_decision=human_decision,
+        trust_min=trust_min,
+        trust_max=trust_max,
+        rule_min=rule_min,
+        rule_max=rule_max,
+        ai_min=ai_min,
+        ai_max=ai_max,
+        date_from=date_from,
+        date_to=date_to,
+        search=search,
+    )
+    investigations = await service.list_investigations(filters=filters, page=page)
+    channels = await service.list_channels_for_filter()
+    return ADMIN_TEMPLATES.TemplateResponse(
+        request,
+        "dashboard/investigations/index.html",
+        {
+            "investigations": investigations,
+            "channels": channels,
+            "filters": {
+                "channel_id": channel_id or "",
+                "status": status,
+                "ai_decision": ai_decision.value if ai_decision else "",
+                "human_decision": human_decision.value if human_decision else "",
+                "trust_min": trust_min if trust_min is not None else "",
+                "trust_max": trust_max if trust_max is not None else "",
+                "rule_min": rule_min if rule_min is not None else "",
+                "rule_max": rule_max if rule_max is not None else "",
+                "ai_min": ai_min if ai_min is not None else "",
+                "ai_max": ai_max if ai_max is not None else "",
+                "date_from": date_from.strftime("%Y-%m-%d") if date_from else "",
+                "date_to": date_to.strftime("%Y-%m-%d") if date_to else "",
+                "search": search or "",
+            },
+            "page": page,
         },
     )
 

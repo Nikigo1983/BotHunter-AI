@@ -1,5 +1,25 @@
 # BotHunter AI — Changelog
 
+## [1.9.0] — 2026-06-30
+
+### Added
+
+- **Investigation Center & Decision Audit** — `/admin/investigations`, full case timeline on join request detail.
+- Decision Comparator (Rule → AI → Final → Human), Rule Inspector with conditions, Prompt/Response viewers.
+- Export JSON + Export PDF, Replay Analysis (no DB/Telegram changes).
+- `InvestigationRepository`, `InvestigationService`, `RuleInspector`, `TimelineBuilder`.
+- REST API: `/api/v1/admin/investigations`, timeline, export, replay.
+- Audit extension: `audit_logs.details` + logging for replay/export.
+- Documentation: `docs/investigation_center.md`; updated dashboard, API, architecture.
+- Tests: repository, service, API, web, replay, export, timeline, audit.
+
+### Not changed (by design)
+
+- Rule Engine, AI Gateway, OpenRouter, Reputation Engine
+- Join Pipeline business logic
+
+---
+
 ## [1.8.0] — 2026-06-30
 
 ### Added

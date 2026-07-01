@@ -8,6 +8,8 @@ Web Admin Dashboard позволяет просматривать и обраб�
 
 OpenAI **не используется** в dashboard.
 
+**v1.9:** Investigation Center — `/admin/investigations`, timeline, prompt/response viewers, replay, export JSON/PDF.
+
 **v1.8:** Channel Management — `/admin/channels`, per-channel settings in DB, enable/disable, REST API.
 
 **v1.7:** AI Analytics & Feedback Center — `/admin/analytics`, accuracy, rules, providers, timeline, Decision Inspector.
@@ -49,10 +51,11 @@ flowchart LR
 | URL | Описание |
 |-----|----------|
 | `/admin` | Список заявок, статистика, фильтры, поиск, пагинация (25) |
+| `/admin/investigations` | Investigation Center — case list, filters (v1.9) |
 | `/admin/channels` | Список подключённых каналов (v1.8) |
 | `/admin/channels/{id}` | Карточка канала: stats, timeline, settings, enable/disable (v1.8) |
 | `/admin/analytics` | AI Analytics & Feedback Center (v1.7) |
-| `/admin/join-request/{id}` | Детальная карточка + действия + Decision Inspector |
+| `/admin/join-request/{id}` | Детальная карточка + Investigation Center + действия (v1.9) |
 | `/admin/partials/join-requests` | HTMX partial для таблицы |
 
 ### Действия на странице заявки
