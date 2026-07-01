@@ -175,6 +175,8 @@ class AdminDashboardService:
             is_whitelisted=is_whitelisted,
             is_blacklisted=is_blacklisted,
             actions_disabled=row.join_request.status in FINAL_STATUSES,
+            whitelist_disabled=is_whitelisted,
+            blacklist_disabled=is_blacklisted,
             manual_reviews=[
                 ManualReviewItemDTO(
                     admin_action=item.admin_action.value,

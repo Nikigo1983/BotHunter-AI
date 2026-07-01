@@ -150,6 +150,8 @@ class JoinRequestDetailDTO:
     is_whitelisted: bool = False
     is_blacklisted: bool = False
     actions_disabled: bool = False
+    whitelist_disabled: bool = False
+    blacklist_disabled: bool = False
     manual_reviews: list[ManualReviewItemDTO] | None = None
     ai_feedbacks: list[AIFeedbackItemDTO] | None = None
     trust_score: float = 50.0

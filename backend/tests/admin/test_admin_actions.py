@@ -226,6 +226,28 @@ async def test_detail_actions_disabled_for_final_status(session: AsyncSession) -
 
     assert detail is not None
     assert detail.actions_disabled is True
+    assert detail.whitelist_disabled is False
+    assert detail.blacklist_disabled is False
+
+
+@pytest.mark.asyncio
+async def test_whitelist_after_approve_adds_to_whitelist(session: AsyncSession) -> None:
+    join_request = await seed_action_context(session, suffix="wla1")
+    mock_bot = AsyncMock()
+    service = AdminJoinRequestActionService(session, bot_factory=make_mock_bot_factory(mock_bot))
+
+    approve_result = await service.approve(join_request.id)
+    assert approve_result.success is True
+
+    whitelist_result = await service.whitelist(join_request.id)
+    assert whitelist_result.success is True
+
+    from app.repositories.deps import get_whitelist_repository
+
+    assert await get_whitelist_repository(session).exists_by_telegram_user_id(
+        join_request.telegram_user_id
+    )
+    mock_bot.approve_chat_join_request.assert_awaited_once()
 
 
 @pytest.mark.asyncio
