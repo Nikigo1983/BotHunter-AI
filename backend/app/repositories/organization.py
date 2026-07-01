@@ -22,13 +22,20 @@ class OrganizationRepository(BaseRepository[Organization]):
         stmt = select(Organization).where(Organization.slug == slug)
         return (await self._session.execute(stmt)).scalar_one_or_none()
 
-    async def list_for_user(self, user_id: uuid.UUID) -> list[Organization]:
+    async def list_for_user(
+        self,
+        user_id: uuid.UUID,
+        *,
+        include_archived: bool = False,
+    ) -> list[Organization]:
         stmt = (
             select(Organization)
             .join(OrganizationMember, OrganizationMember.organization_id == Organization.id)
             .where(OrganizationMember.user_id == user_id)
             .order_by(Organization.name.asc())
         )
+        if not include_archived:
+            stmt = stmt.where(Organization.is_archived.is_(False))
         return list((await self._session.execute(stmt)).scalars().all())
 
     async def count_channels(self, organization_id: uuid.UUID) -> int:
@@ -58,16 +65,39 @@ class WorkspaceRepository(BaseRepository[Workspace]):
         )
         if organization_id is not None:
             stmt = stmt.where(Workspace.organization_id == organization_id)
+        stmt = stmt.where(Workspace.is_archived.is_(False))
         return list((await self._session.execute(stmt)).scalars().all())
 
     async def get_default_for_organization(self, organization_id: uuid.UUID) -> Workspace | None:
         stmt = (
             select(Workspace)
-            .where(Workspace.organization_id == organization_id)
+            .where(
+                Workspace.organization_id == organization_id,
+                Workspace.is_archived.is_(False),
+            )
             .order_by(Workspace.created_at.asc())
             .limit(1)
         )
         return (await self._session.execute(stmt)).scalar_one_or_none()
+
+    async def get_by_org_slug(self, organization_id: uuid.UUID, slug: str) -> Workspace | None:
+        stmt = select(Workspace).where(
+            Workspace.organization_id == organization_id,
+            Workspace.slug == slug,
+        )
+        return (await self._session.execute(stmt)).scalar_one_or_none()
+
+    async def list_for_organization(
+        self,
+        organization_id: uuid.UUID,
+        *,
+        include_archived: bool = False,
+    ) -> list[Workspace]:
+        stmt = select(Workspace).where(Workspace.organization_id == organization_id)
+        if not include_archived:
+            stmt = stmt.where(Workspace.is_archived.is_(False))
+        stmt = stmt.order_by(Workspace.name.asc())
+        return list((await self._session.execute(stmt)).scalars().all())
 
 
 class OrganizationMemberRepository(BaseRepository[OrganizationMember]):

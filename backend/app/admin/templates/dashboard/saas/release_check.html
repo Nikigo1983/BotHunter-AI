@@ -1,0 +1,25 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Release Check{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <h1 class="h3 mb-3">Release Validation</h1>
+    {% if report.ready_for_production %}
+    <div class="alert alert-success"><strong>Ready for Production</strong> — all checks passed.</div>
+    {% else %}
+    <div class="alert alert-warning">Some checks failed. Resolve issues before production release.</div>
+    {% endif %}
+    <div class="row g-3">
+        {% for item in report.items %}
+        <div class="col-md-4">
+            <div class="card h-100 {% if item.passed %}border-success{% else %}border-danger{% endif %}">
+                <div class="card-body">
+                    <h2 class="h6">{{ item.name }}</h2>
+                    <p class="mb-1"><span class="badge {% if item.passed %}text-bg-success{% else %}text-bg-danger{% endif %}">{% if item.passed %}PASS{% else %}FAIL{% endif %}</span></p>
+                    <p class="small text-muted mb-0">{{ item.detail }}</p>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

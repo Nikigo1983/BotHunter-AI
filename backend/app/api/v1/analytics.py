@@ -1,8 +1,10 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.admin.auth.deps import require_api_dashboard_auth
 from app.database.session import get_db_session
+from app.services.dashboard_auth import DashboardAuthContext
+from app.tenant.middleware import resolve_tenant_context
 from app.schemas.analytics import (
     AIAccuracyResponse,
     AnalyticsOverviewResponse,
@@ -24,9 +26,12 @@ router = APIRouter(
 
 
 async def get_analytics_service(
+    request: Request,
+    auth: DashboardAuthContext = Depends(require_api_dashboard_auth),
     session: AsyncSession = Depends(get_db_session),
 ) -> AnalyticsService:
-    return AnalyticsService(session)
+    tenant = await resolve_tenant_context(request, auth, session)
+    return AnalyticsService(session, tenant=tenant)
 
 
 def _map_accuracy(service_result):

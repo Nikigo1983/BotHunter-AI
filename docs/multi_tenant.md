@@ -20,6 +20,45 @@ Every authenticated dashboard/API request resolves a `TenantContext`:
 
 Use the navbar **Switch** dropdown to change workspace. The navbar shows the current organization and workspace badges.
 
+## Version
+
+**v3.0.0** — Full multi-tenant SaaS (Phase 3 complete).
+
+---
+
+## Phase 3 — SaaS Completion (v3.0.0)
+
+### Organization Management — `/admin/organizations`
+
+Owners can create, update, archive, and delete organizations (delete blocked when channels or multiple members exist). New organizations start with `onboarding_completed=false` and redirect to the onboarding wizard.
+
+### Workspace Management — `/admin/workspaces`
+
+Owners can create workspaces, rename, archive (except default), and assign organization members to workspaces with roles.
+
+### Analytics Tenant Scope
+
+All analytics queries filter by active `organization_id` and `workspace_id`:
+
+- Dashboard statistics (via tenant-scoped join request repo)
+- Investigation Center
+- AI Usage (`/admin/ai`)
+- Billing metrics
+- Rule Analytics (Policy Center)
+- Provider Analytics
+
+### Organization Telegram Runtime
+
+`TelegramRuntimeService` resolves the organization's Telegram bot token from secrets; falls back to global `BOT_TOKEN`. Used in join-request actions and channel registration verification.
+
+### Onboarding Wizard — `/admin/onboarding`
+
+Steps: organization name → plan → workspace → Telegram token → OpenRouter key → first channel → connection verify → done.
+
+### Release Validation — `/admin/release-check`
+
+Green **Ready for Production** banner when all nine checks pass.
+
 ## Organization Management (Phase 2)
 
 ### Members — `/admin/organization/members`
@@ -101,21 +140,16 @@ Migrations:
 
 - `i9j0k1l2m3n4` — Phase 1 multi-tenant foundation
 - `j0k1l2m3n4o5` — Phase 2 org management (favicon, invite workspace)
+- `k1l2m3n4o5p6` — Phase 3 SaaS completion (archive flags, onboarding)
 
 ## Bootstrap
 
 On startup, `TenantBootstrapService` ensures a default organization and workspace, backfills legacy rows, and seeds the initial policy for that organization.
 
-## Out of Scope (Phase 2)
+## Out of Scope (unchanged engines)
 
-The following remain global or unchanged in Phase 2:
-
-- Rule Engine logic
-- AI provider implementation (only key resolution is tenant-aware)
-- Reputation, Investigation, Analytics engines
-
-Phase 3 will complete full tenant scoping across remaining modules.
+Rule Engine logic, AI provider implementation, Reputation engine core — only tenant-scoped configuration and data access changed in v3.0.
 
 ## Version
 
-**v3.0.0-beta** — Organization management complete (Phase 2).
+**v3.0.0** — Full SaaS release (Phase 3 complete).

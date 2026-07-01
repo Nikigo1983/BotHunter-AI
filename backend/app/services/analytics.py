@@ -28,9 +28,19 @@ class AnalyticsService:
         self,
         session: AsyncSession,
         repository: AnalyticsRepository | None = None,
+        tenant=None,
     ) -> None:
         self._session = session
-        self._repository = repository or get_analytics_repository(session)
+        if repository is not None:
+            self._repository = repository
+        elif tenant is not None:
+            self._repository = get_analytics_repository(
+                session,
+                organization_id=tenant.organization_id,
+                workspace_id=tenant.workspace_id,
+            )
+        else:
+            self._repository = get_analytics_repository(session)
 
     async def get_overview(self) -> AnalyticsOverviewDTO:
         return AnalyticsOverviewDTO(

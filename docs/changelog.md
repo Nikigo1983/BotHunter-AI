@@ -1,5 +1,45 @@
 # BotHunter AI — Changelog
 
+## [3.0.0] — 2026-06-30
+
+### Added — SaaS Completion (Phase 3)
+
+- **Organization Management** — `/admin/organizations`: create, update, archive, delete (Owner only).
+- **Workspace Management** — `/admin/workspaces`: create, rename, archive, assign users.
+- **Onboarding Wizard** — `/admin/onboarding` (8 steps): org name, plan, workspace, Telegram, OpenRouter, first channel, verify, done.
+- **Release Validation** — `/admin/release-check`: Database, Redis, Telegram, OpenRouter, Billing, Workspace, Organization, AI, Analytics.
+- **Tenant-scoped Analytics** — all analytics, AI usage, rule/provider stats filtered by `organization_id` + `workspace_id`.
+- **Tenant-scoped Investigations** — Investigation Center respects active tenant.
+- **Organization Telegram runtime** — org bot token with global fallback (join actions, channel registration).
+- Migration `k1l2m3n4o5p6` (`is_archived`, `onboarding_completed`).
+- Tests: `tests/admin/test_phase3_saas.py`, extended tenant isolation.
+- **214 tests passing.**
+
+### Added — Multi-Tenant SaaS (Phase 1–2, v3.0.0-beta)
+
+- Organizations, Workspaces, tenant context, plan limits, billing dashboard.
+- Members, invites, secrets, white-label branding, REST API.
+- See `docs/multi_tenant.md`.
+
+### Release Notes
+
+BotHunter AI v3.0.0 completes the multi-tenant SaaS platform:
+
+1. Self-service organization and workspace provisioning for Owners.
+2. Full tenant isolation across Dashboard, Investigations, Analytics, Billing, and AI Usage.
+3. Per-organization OpenRouter and Telegram secrets with runtime fallback.
+4. Onboarding wizard and production release checklist for go-live validation.
+
+**Recommended next step:** deploy to test Telegram channels, collect real join-request cases for 2–4 weeks, then plan v3.1 from user feedback.
+
+---
+
+## [3.0.0-beta] — 2026-06-30
+
+Phase 2 organization management (members, invites, secrets, billing, branding). Tag: `v3.0.0-beta`.
+
+---
+
 ## [2.1.0] — 2026-06-30
 
 ### Added — Adaptive Intelligence & Policy Center

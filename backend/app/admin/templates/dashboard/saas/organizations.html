@@ -1,0 +1,52 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Organizations{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <h1 class="h3 mb-3">Organizations</h1>
+    {% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+    <div class="card mb-4">
+        <div class="card-header">Create Organization</div>
+        <div class="card-body">
+            <form method="post" action="/admin/organizations/create" class="row g-2">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="col-md-4"><input class="form-control" name="name" placeholder="Organization name" required></div>
+                <div class="col-md-3">
+                    <select class="form-select" name="plan">
+                        {% for plan in plans %}<option value="{{ plan.value }}">{{ plan.value }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2"><button class="btn btn-primary" type="submit">Create</button></div>
+            </form>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-body table-responsive">
+            <table class="table table-sm align-middle">
+                <thead><tr><th>Name</th><th>Plan</th><th>Workspaces</th><th>Channels</th><th>Status</th><th></th></tr></thead>
+                <tbody>
+                {% for org in organizations %}
+                    <tr>
+                        <td>{{ org.display_name or org.name }}</td>
+                        <td>{{ org.plan }}</td>
+                        <td>{{ org.workspace_count }}</td>
+                        <td>{{ org.channel_count }}</td>
+                        <td>{% if org.is_archived %}Archived{% elif org.onboarding_completed %}Active{% else %}Onboarding{% endif %}</td>
+                        <td class="text-end">
+                            {% if not org.onboarding_completed and not org.is_archived %}
+                            <a class="btn btn-sm btn-outline-primary" href="/admin/onboarding">Continue setup</a>
+                            {% endif %}
+                            {% if not org.is_archived and org.slug != 'default' %}
+                            <form method="post" action="/admin/organizations/{{ org.id }}/archive" class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <button class="btn btn-sm btn-outline-warning" type="submit">Archive</button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

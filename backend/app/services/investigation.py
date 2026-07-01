@@ -48,12 +48,22 @@ class InvestigationService:
         session: AsyncSession,
         *,
         ai_service: AIService | None = None,
+        tenant=None,
     ) -> None:
         self._session = session
-        self._repo = get_investigation_repository(session)
+        self._tenant = tenant
+        if tenant is not None:
+            self._repo = get_investigation_repository(
+                session,
+                organization_id=tenant.organization_id,
+                workspace_id=tenant.workspace_id,
+            )
+            self._dashboard = AdminDashboardService(session, tenant=tenant)
+        else:
+            self._repo = get_investigation_repository(session)
+            self._dashboard = AdminDashboardService(session)
         self._audit_repo = get_audit_log_repository(session)
         self._manual_review_repo = get_manual_review_repository(session)
-        self._dashboard = AdminDashboardService(session)
         self._reputation_service = ReputationService(session)
         self._feature_extractor = FeatureExtractor()
         self._rule_engine = RuleEngine()

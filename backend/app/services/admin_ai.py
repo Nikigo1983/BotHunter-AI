@@ -35,13 +35,20 @@ class AISettingsDTO:
 
 
 class AdminAIService:
-    def __init__(self, session: AsyncSession) -> None:
+    def __init__(self, session: AsyncSession, tenant=None) -> None:
         self._session = session
-        self._usage_repo = get_ai_usage_repository(session)
+        self._tenant = tenant
+        if tenant is not None:
+            self._usage_repo = get_ai_usage_repository(
+                session,
+                organization_id=tenant.organization_id,
+            )
+        else:
+            self._usage_repo = get_ai_usage_repository(session)
 
     async def get_usage_statistics(self) -> AIUsageStatisticsDTO:
         raw = await self._usage_repo.get_statistics()
-        usage = await AnalyticsService(self._session).get_usage_dashboard()
+        usage = await AnalyticsService(self._session, tenant=self._tenant).get_usage_dashboard()
         return AIUsageStatisticsDTO(
             total_requests=int(raw["total_requests"]),
             total_tokens=int(raw["total_tokens"]),

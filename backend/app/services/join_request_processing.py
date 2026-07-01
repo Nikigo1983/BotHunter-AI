@@ -198,6 +198,7 @@ class JoinRequestProcessingService:
             chat_id=event.chat.id,
             user_id=event.from_user.id,
             decision=final_decision,
+            organization_id=channel.organization_id,
         )
 
         channel_title = channel.title
@@ -285,6 +286,7 @@ class JoinRequestProcessingService:
             chat_id=event.chat.id,
             user_id=event.from_user.id,
             decision=decision,
+            organization_id=channel.organization_id,
         )
 
         empty_rule_result = RuleEngineResult(rule_score=0, triggered_rules=[])
@@ -363,13 +365,21 @@ class JoinRequestProcessingService:
         chat_id: int,
         user_id: int,
         decision: AnalysisDecision,
+        organization_id: uuid.UUID | None = None,
     ) -> str:
+        from app.services.telegram_runtime import TelegramRuntimeService
+
+        bot = await TelegramRuntimeService(self._session).get_bot(
+            organization_id,
+            fallback=self._bot,
+        )
+        close_bot = bot is not self._bot
         try:
             if decision == AnalysisDecision.APPROVED:
-                await self._bot.approve_chat_join_request(chat_id=chat_id, user_id=user_id)
+                await bot.approve_chat_join_request(chat_id=chat_id, user_id=user_id)
                 return "approved"
             if decision == AnalysisDecision.REJECTED:
-                await self._bot.decline_chat_join_request(chat_id=chat_id, user_id=user_id)
+                await bot.decline_chat_join_request(chat_id=chat_id, user_id=user_id)
                 return "declined"
             return "left_pending"
         except Exception as exc:
@@ -382,6 +392,9 @@ class JoinRequestProcessingService:
                 exc_info=True,
             )
             return "telegram_action_failed"
+        finally:
+            if close_bot:
+                await bot.session.close()
 
     @staticmethod
     def _resolve_final_decision(

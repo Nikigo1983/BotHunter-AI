@@ -1,0 +1,68 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Workspaces{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <h1 class="h3 mb-3">Workspaces — {{ tenant.organization_name if tenant else '' }}</h1>
+    <div class="card mb-4">
+        <div class="card-header">Create Workspace</div>
+        <div class="card-body">
+            <form method="post" action="/admin/workspaces/create" class="row g-2">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="col-md-6"><input class="form-control" name="name" placeholder="Workspace name" required></div>
+                <div class="col-md-2"><button class="btn btn-primary" type="submit">Create</button></div>
+            </form>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-body table-responsive">
+            <table class="table table-sm">
+                <thead><tr><th>Name</th><th>Slug</th><th>Members</th><th>Status</th><th></th></tr></thead>
+                <tbody>
+                {% for ws in workspaces %}
+                    <tr>
+                        <td>{{ ws.name }}</td>
+                        <td>{{ ws.slug }}</td>
+                        <td>{{ ws.member_count }}</td>
+                        <td>{% if ws.is_archived %}Archived{% else %}Active{% endif %}</td>
+                        <td>
+                            {% if not ws.is_archived and ws.slug != 'default' %}
+                            <form method="post" action="/admin/workspaces/{{ ws.id }}/archive" class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <button class="btn btn-sm btn-outline-warning" type="submit">Archive</button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card mt-4">
+        <div class="card-header">Assign User to Workspace</div>
+        <div class="card-body">
+            {% for ws in workspaces if not ws.is_archived %}
+            <form method="post" action="/admin/workspaces/{{ ws.id }}/assign" class="row g-2 mb-2">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="col-md-3"><strong>{{ ws.name }}</strong></div>
+                <div class="col-md-4">
+                    <select class="form-select" name="user_id">
+                        {% for user_id, full_name, email in members %}
+                        <option value="{{ user_id }}">{{ full_name }} ({{ email }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" name="role">
+                        <option value="moderator">moderator</option>
+                        <option value="viewer">viewer</option>
+                        <option value="administrator">administrator</option>
+                    </select>
+                </div>
+                <div class="col-md-2"><button class="btn btn-sm btn-primary" type="submit">Assign</button></div>
+            </form>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

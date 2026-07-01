@@ -40,7 +40,23 @@ Sub-pages:
 
 ## Production Ready checklist
 
-The score on `/admin/system` reflects:
+The score on `/admin/system` reflects global infrastructure checks. For **multi-tenant go-live**, also use `/admin/release-check` (tenant-scoped):
+
+| Check | Description |
+|-------|-------------|
+| Database | PostgreSQL reachable |
+| Redis | Redis reachable |
+| Telegram | Org or global bot token configured |
+| OpenRouter | Org or global API key configured |
+| Billing | Organization plan set |
+| Workspace | Active workspace selected |
+| Organization | Not archived, onboarding complete |
+| AI | Provider configured |
+| Analytics | Tenant-scoped queries working |
+
+**Ready for Production** (green) requires all nine checks to pass for the active organization.
+
+Legacy `/admin/system` checks:
 
 - AI configured
 - Telegram connected

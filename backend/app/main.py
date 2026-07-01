@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.admin.auth_router import auth_router
 from app.admin.invite_router import invite_router
 from app.admin.organization_router import organization_router
+from app.admin.saas_router import saas_router
 from app.admin.tenant_router import tenant_router
 from app.admin.policy_router import policy_router
 from app.admin.router import router as admin_web_router
@@ -67,6 +68,7 @@ def create_app() -> FastAPI:
     app.include_router(invite_router)
     app.include_router(admin_web_router)
     app.include_router(organization_router)
+    app.include_router(saas_router)
     app.include_router(tenant_router)
     app.include_router(policy_router)
     app.include_router(system_router)

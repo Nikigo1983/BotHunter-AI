@@ -49,8 +49,16 @@ class InvestigationFilters:
 
 
 class InvestigationRepository:
-    def __init__(self, session: AsyncSession) -> None:
+    def __init__(
+        self,
+        session: AsyncSession,
+        *,
+        organization_id: uuid.UUID | None = None,
+        workspace_id: uuid.UUID | None = None,
+    ) -> None:
         self._session = session
+        self._organization_id = organization_id
+        self._workspace_id = workspace_id
 
     async def list_investigations(
         self,
@@ -92,6 +100,7 @@ class InvestigationRepository:
     async def get_investigation(self, join_request_id: uuid.UUID) -> JoinRequestAdminRow | None:
         stmt = (
             select(JoinRequest)
+            .join(TelegramChannel, TelegramChannel.id == JoinRequest.channel_id)
             .options(
                 selectinload(JoinRequest.channel),
                 selectinload(JoinRequest.telegram_user),
@@ -99,6 +108,10 @@ class InvestigationRepository:
             )
             .where(JoinRequest.id == join_request_id)
         )
+        if self._organization_id is not None:
+            stmt = stmt.where(TelegramChannel.organization_id == self._organization_id)
+        if self._workspace_id is not None:
+            stmt = stmt.where(TelegramChannel.workspace_id == self._workspace_id)
         join_request = (await self._session.execute(stmt)).scalar_one_or_none()
         if join_request is None:
             return None
@@ -117,6 +130,10 @@ class InvestigationRepository:
 
     async def list_channels_for_filter(self) -> list[tuple[uuid.UUID, str]]:
         stmt = select(TelegramChannel.id, TelegramChannel.title).order_by(TelegramChannel.title)
+        if self._organization_id is not None:
+            stmt = stmt.where(TelegramChannel.organization_id == self._organization_id)
+        if self._workspace_id is not None:
+            stmt = stmt.where(TelegramChannel.workspace_id == self._workspace_id)
         rows = (await self._session.execute(stmt)).all()
         return [(row[0], row[1]) for row in rows]
 
@@ -188,6 +205,11 @@ class InvestigationRepository:
         latest_analysis,
         latest_feedback,
     ) -> Select[Any]:
+        if self._organization_id is not None:
+            stmt = stmt.where(TelegramChannel.organization_id == self._organization_id)
+        if self._workspace_id is not None:
+            stmt = stmt.where(TelegramChannel.workspace_id == self._workspace_id)
+
         mapped_status = STATUS_FILTER_MAP.get(filters.status)
         if mapped_status is not None:
             stmt = stmt.where(JoinRequest.status == mapped_status)

@@ -69,7 +69,6 @@ class PolicyService:
         self._workspace_id = workspace_id
         self._user_id = user_id
         self._repo = get_policy_repository(session)
-        self._analytics = AnalyticsRepository(session)
         self._audit_repo = get_audit_log_repository(session)
 
     async def _resolve_organization_id(self) -> uuid.UUID:
@@ -119,8 +118,14 @@ class PolicyService:
 
     async def list_rules(self) -> list[RulePolicyView]:
         policy = await self.get_effective_policy()
+        org_id = await self._resolve_organization_id()
+        analytics_repo = AnalyticsRepository(
+            self._session,
+            organization_id=org_id,
+            workspace_id=self._workspace_id,
+        )
         analytics_map = {
-            row["rule_name"]: row for row in await self._analytics.get_rule_effectiveness_raw()
+            row["rule_name"]: row for row in await analytics_repo.get_rule_effectiveness_raw()
         }
         views: list[RulePolicyView] = []
         for rule_key, config in policy.rules.items():

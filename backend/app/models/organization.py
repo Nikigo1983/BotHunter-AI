@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sqlalchemy import Index, String, UniqueConstraint
+from sqlalchemy import Boolean, Index, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database.base import Base
@@ -27,3 +27,5 @@ class Organization(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     brand_color: Mapped[str | None] = mapped_column(String(32), nullable=True)
     display_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     favicon_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    is_archived: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    onboarding_completed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)

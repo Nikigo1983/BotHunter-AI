@@ -34,9 +34,11 @@ router = APIRouter(
 
 
 async def get_admin_service(
+    request: Request,
     session: AsyncSession = Depends(get_db_session),
 ) -> AdminDashboardService:
-    return AdminDashboardService(session)
+    tenant = getattr(request.state, "tenant", None)
+    return AdminDashboardService(session, tenant=tenant)
 
 
 async def get_action_service(
@@ -46,15 +48,19 @@ async def get_action_service(
 
 
 async def get_admin_ai_service(
+    request: Request,
     session: AsyncSession = Depends(get_db_session),
 ) -> AdminAIService:
-    return AdminAIService(session)
+    tenant = getattr(request.state, "tenant", None)
+    return AdminAIService(session, tenant=tenant)
 
 
 async def get_analytics_service(
+    request: Request,
     session: AsyncSession = Depends(get_db_session),
 ) -> AnalyticsService:
-    return AnalyticsService(session)
+    tenant = getattr(request.state, "tenant", None)
+    return AnalyticsService(session, tenant=tenant)
 
 
 async def get_channel_service(
@@ -64,15 +70,25 @@ async def get_channel_service(
 
 
 async def get_policy_service(
+    request: Request,
     session: AsyncSession = Depends(get_db_session),
 ) -> PolicyService:
+    tenant = getattr(request.state, "tenant", None)
+    if tenant is not None:
+        return PolicyService(
+            session,
+            organization_id=tenant.organization_id,
+            workspace_id=tenant.workspace_id,
+        )
     return PolicyService(session)
 
 
 async def get_investigation_service(
+    request: Request,
     session: AsyncSession = Depends(get_db_session),
 ) -> InvestigationService:
-    return InvestigationService(session)
+    tenant = getattr(request.state, "tenant", None)
+    return InvestigationService(session, tenant=tenant)
 
 
 def status_badge_class(status: str) -> str:

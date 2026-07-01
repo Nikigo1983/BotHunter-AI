@@ -70,8 +70,17 @@ def get_ai_feedback_repository(session: AsyncSession) -> AIFeedbackRepository:
     return AIFeedbackRepository(session)
 
 
-def get_investigation_repository(session: AsyncSession) -> InvestigationRepository:
-    return InvestigationRepository(session)
+def get_investigation_repository(
+    session: AsyncSession,
+    *,
+    organization_id=None,
+    workspace_id=None,
+) -> InvestigationRepository:
+    return InvestigationRepository(
+        session,
+        organization_id=organization_id,
+        workspace_id=workspace_id,
+    )
 
 
 def get_join_request_repository(session: AsyncSession) -> JoinRequestRepository:
@@ -102,12 +111,25 @@ def get_reputation_repository(session: AsyncSession) -> ReputationRepository:
     return ReputationRepository(session)
 
 
-def get_ai_usage_repository(session: AsyncSession) -> AIUsageRepository:
-    return AIUsageRepository(session)
+def get_ai_usage_repository(
+    session: AsyncSession,
+    *,
+    organization_id=None,
+) -> AIUsageRepository:
+    return AIUsageRepository(session, organization_id=organization_id)
 
 
-def get_analytics_repository(session: AsyncSession) -> AnalyticsRepository:
-    return AnalyticsRepository(session)
+def get_analytics_repository(
+    session: AsyncSession,
+    *,
+    organization_id=None,
+    workspace_id=None,
+) -> AnalyticsRepository:
+    return AnalyticsRepository(
+        session,
+        organization_id=organization_id,
+        workspace_id=workspace_id,
+    )
 
 
 def get_audit_log_repository(session: AsyncSession) -> AuditLogRepository:

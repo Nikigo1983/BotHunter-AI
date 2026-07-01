@@ -58,6 +58,13 @@ async def seed_join_request(
             is_active=True,
         )
     )
+    from app.services.tenant_bootstrap import TenantBootstrapService
+
+    bootstrap = await TenantBootstrapService(session).ensure_default_tenant()
+    if bootstrap is not None:
+        channel.organization_id = bootstrap.organization.id
+        channel.workspace_id = bootstrap.workspace.id
+        await channel_repo.update(channel)
     telegram_user = await telegram_user_repo.create(
         TelegramUser(
             telegram_id=telegram_id,

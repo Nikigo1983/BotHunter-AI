@@ -2,7 +2,7 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import Float, case, cast, func, select, text
+from sqlalchemy import Float, and_, case, cast, func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.dialects.postgresql import JSONB
 
@@ -10,51 +10,95 @@ from app.models.ai_analysis import AIAnalysis
 from app.models.ai_feedback import AIFeedback
 from app.models.ai_usage import AIUsage
 from app.models.enums import AnalysisDecision
+from app.models.join_request import JoinRequest
+from app.models.telegram_channel import TelegramChannel
 
 
 class AnalyticsRepository:
-    def __init__(self, session: AsyncSession) -> None:
+    def __init__(
+        self,
+        session: AsyncSession,
+        *,
+        organization_id: uuid.UUID | None = None,
+        workspace_id: uuid.UUID | None = None,
+    ) -> None:
         self._session = session
+        self._organization_id = organization_id
+        self._workspace_id = workspace_id
+
+    def _apply_channel_scope(self, stmt):
+        if self._organization_id is not None:
+            stmt = stmt.where(TelegramChannel.organization_id == self._organization_id)
+        if self._workspace_id is not None:
+            stmt = stmt.where(TelegramChannel.workspace_id == self._workspace_id)
+        return stmt
+
+    def _feedback_from(self):
+        stmt = (
+            select(AIFeedback)
+            .join(JoinRequest, JoinRequest.id == AIFeedback.join_request_id)
+            .join(TelegramChannel, TelegramChannel.id == JoinRequest.channel_id)
+        )
+        return self._apply_channel_scope(stmt)
+
+    def _analysis_from(self):
+        stmt = (
+            select(AIAnalysis)
+            .join(JoinRequest, JoinRequest.id == AIAnalysis.join_request_id)
+            .join(TelegramChannel, TelegramChannel.id == JoinRequest.channel_id)
+        )
+        return self._apply_channel_scope(stmt)
+
+    def _usage_stmt(self, *columns):
+        stmt = select(*columns).select_from(AIUsage)
+        if self._organization_id is not None:
+            stmt = stmt.where(AIUsage.organization_id == self._organization_id)
+        return stmt
 
     async def get_feedback_accuracy_raw(self) -> dict[str, Any]:
-        stmt = select(
-            func.count().label("total"),
-            func.sum(case((AIFeedback.was_ai_correct.is_(True), 1), else_=0)).label("matched"),
-            func.sum(case((AIFeedback.was_ai_correct.is_(False), 1), else_=0)).label("mismatched"),
-            func.sum(
-                case(
-                    (
-                        (AIFeedback.ai_decision == AnalysisDecision.APPROVED)
-                        & (AIFeedback.human_decision != AnalysisDecision.APPROVED),
-                        1,
-                    ),
-                    else_=0,
-                )
-            ).label("false_approve"),
-            func.sum(
-                case(
-                    (
-                        (AIFeedback.ai_decision == AnalysisDecision.REJECTED)
-                        & (AIFeedback.human_decision != AnalysisDecision.REJECTED),
-                        1,
-                    ),
-                    else_=0,
-                )
-            ).label("false_reject"),
-            func.sum(
-                case((AIFeedback.ai_decision == AnalysisDecision.MANUAL_REVIEW, 1), else_=0)
-            ).label("manual_review_total"),
-            func.sum(
-                case(
-                    (
-                        (AIFeedback.ai_decision == AnalysisDecision.MANUAL_REVIEW)
-                        & (AIFeedback.was_ai_correct.is_(True)),
-                        1,
-                    ),
-                    else_=0,
-                )
-            ).label("manual_review_matched"),
-        ).select_from(AIFeedback)
+        stmt = self._apply_channel_scope(
+            select(
+                func.count().label("total"),
+                func.sum(case((AIFeedback.was_ai_correct.is_(True), 1), else_=0)).label("matched"),
+                func.sum(case((AIFeedback.was_ai_correct.is_(False), 1), else_=0)).label("mismatched"),
+                func.sum(
+                    case(
+                        (
+                            (AIFeedback.ai_decision == AnalysisDecision.APPROVED)
+                            & (AIFeedback.human_decision != AnalysisDecision.APPROVED),
+                            1,
+                        ),
+                        else_=0,
+                    )
+                ).label("false_approve"),
+                func.sum(
+                    case(
+                        (
+                            (AIFeedback.ai_decision == AnalysisDecision.REJECTED)
+                            & (AIFeedback.human_decision != AnalysisDecision.REJECTED),
+                            1,
+                        ),
+                        else_=0,
+                    )
+                ).label("false_reject"),
+                func.sum(
+                    case((AIFeedback.ai_decision == AnalysisDecision.MANUAL_REVIEW, 1), else_=0)
+                ).label("manual_review_total"),
+                func.sum(
+                    case(
+                        (
+                            (AIFeedback.ai_decision == AnalysisDecision.MANUAL_REVIEW)
+                            & (AIFeedback.was_ai_correct.is_(True)),
+                            1,
+                        ),
+                        else_=0,
+                    )
+                ).label("manual_review_matched"),
+            )
+            .select_from(AIFeedback)
+            .join(JoinRequest, JoinRequest.id == AIFeedback.join_request_id)
+            .join(TelegramChannel, TelegramChannel.id == JoinRequest.channel_id)
+        )
         row = (await self._session.execute(stmt)).one()
         return {
             "total": int(row.total or 0),
@@ -67,8 +111,11 @@ class AnalyticsRepository:
         }
 
     async def get_decision_distribution_raw(self) -> list[dict[str, Any]]:
-        stmt = (
+        stmt = self._apply_channel_scope(
             select(AIAnalysis.decision, func.count().label("count"))
+            .select_from(AIAnalysis)
+            .join(JoinRequest, JoinRequest.id == AIAnalysis.join_request_id)
+            .join(TelegramChannel, TelegramChannel.id == JoinRequest.channel_id)
             .group_by(AIAnalysis.decision)
             .order_by(func.count().desc())
         )
@@ -79,7 +126,7 @@ class AnalyticsRepository:
 
     async def get_provider_usage_raw(self) -> list[dict[str, Any]]:
         stmt = (
-            select(
+            self._usage_stmt(
                 AIUsage.provider,
                 AIUsage.model,
                 func.count().label("requests"),
@@ -110,7 +157,7 @@ class AnalyticsRepository:
         model_expr = explanation_json["ai_result"]["model"].astext
         confidence_expr = cast(explanation_json["ai_result"]["confidence"].astext, Float)
 
-        stmt = (
+        stmt = self._apply_channel_scope(
             select(
                 provider_expr.label("provider"),
                 model_expr.label("model"),
@@ -121,6 +168,8 @@ class AnalyticsRepository:
             )
             .select_from(AIAnalysis)
             .join(AIFeedback, AIFeedback.join_request_id == AIAnalysis.join_request_id)
+            .join(JoinRequest, JoinRequest.id == AIAnalysis.join_request_id)
+            .join(TelegramChannel, TelegramChannel.id == JoinRequest.channel_id)
             .where(
                 AIAnalysis.explanation.is_not(None),
                 explanation_json["ai_result"].is_not(None),
@@ -145,8 +194,16 @@ class AnalyticsRepository:
         return rows
 
     async def get_rule_effectiveness_raw(self) -> list[dict[str, Any]]:
+        org_filter = ""
+        params: dict[str, object] = {}
+        if self._organization_id is not None:
+            org_filter += " AND tc.organization_id = :organization_id"
+            params["organization_id"] = self._organization_id
+        if self._workspace_id is not None:
+            org_filter += " AND tc.workspace_id = :workspace_id"
+            params["workspace_id"] = self._workspace_id
         query = text(
-            """
+            f"""
             WITH rule_events AS (
                 SELECT
                     elem->>'rule' AS rule_name,
@@ -154,14 +211,17 @@ class AnalyticsRepository:
                     a.decision AS ai_decision,
                     a.join_request_id
                 FROM ai_analyses a
+                JOIN join_requests jr ON jr.id = a.join_request_id
+                JOIN telegram_channels tc ON tc.id = jr.channel_id
                 CROSS JOIN LATERAL jsonb_array_elements(
                     CASE
-                        WHEN a.explanation IS NOT NULL AND a.explanation LIKE '{%'
+                        WHEN a.explanation IS NOT NULL AND a.explanation LIKE '{{%'
                         THEN a.explanation::jsonb->'triggered_rules'
                         ELSE '[]'::jsonb
                     END
                 ) AS elem
                 WHERE elem->>'rule' IS NOT NULL
+                {org_filter}
             ),
             feedback AS (
                 SELECT DISTINCT ON (join_request_id)
@@ -196,7 +256,7 @@ class AnalyticsRepository:
             ORDER BY triggered_count DESC
             """
         )
-        rows = (await self._session.execute(query)).all()
+        rows = (await self._session.execute(query, params)).all()
         return [
             {
                 "rule_name": row.rule_name,
@@ -210,48 +270,53 @@ class AnalyticsRepository:
         ]
 
     async def get_feedback_categories_raw(self) -> dict[str, int]:
-        stmt = select(
-            func.sum(
-                case(
-                    (
-                        (AIFeedback.ai_decision == AnalysisDecision.REJECTED)
-                        & (AIFeedback.human_decision == AnalysisDecision.APPROVED),
-                        1,
-                    ),
-                    else_=0,
-                )
-            ).label("approve_after_ai_reject"),
-            func.sum(
-                case(
-                    (
-                        (AIFeedback.ai_decision == AnalysisDecision.APPROVED)
-                        & (AIFeedback.human_decision == AnalysisDecision.REJECTED),
-                        1,
-                    ),
-                    else_=0,
-                )
-            ).label("reject_after_ai_approve"),
-            func.sum(
-                case(
-                    (
-                        (AIFeedback.ai_decision == AnalysisDecision.MANUAL_REVIEW)
-                        & (AIFeedback.human_decision == AnalysisDecision.APPROVED),
-                        1,
-                    ),
-                    else_=0,
-                )
-            ).label("approve_after_manual_review"),
-            func.sum(
-                case(
-                    (
-                        (AIFeedback.ai_decision == AnalysisDecision.MANUAL_REVIEW)
-                        & (AIFeedback.human_decision == AnalysisDecision.REJECTED),
-                        1,
-                    ),
-                    else_=0,
-                )
-            ).label("reject_after_manual_review"),
-        ).select_from(AIFeedback)
+        stmt = self._apply_channel_scope(
+            select(
+                func.sum(
+                    case(
+                        (
+                            (AIFeedback.ai_decision == AnalysisDecision.REJECTED)
+                            & (AIFeedback.human_decision == AnalysisDecision.APPROVED),
+                            1,
+                        ),
+                        else_=0,
+                    )
+                ).label("approve_after_ai_reject"),
+                func.sum(
+                    case(
+                        (
+                            (AIFeedback.ai_decision == AnalysisDecision.APPROVED)
+                            & (AIFeedback.human_decision == AnalysisDecision.REJECTED),
+                            1,
+                        ),
+                        else_=0,
+                    )
+                ).label("reject_after_ai_approve"),
+                func.sum(
+                    case(
+                        (
+                            (AIFeedback.ai_decision == AnalysisDecision.MANUAL_REVIEW)
+                            & (AIFeedback.human_decision == AnalysisDecision.APPROVED),
+                            1,
+                        ),
+                        else_=0,
+                    )
+                ).label("approve_after_manual_review"),
+                func.sum(
+                    case(
+                        (
+                            (AIFeedback.ai_decision == AnalysisDecision.MANUAL_REVIEW)
+                            & (AIFeedback.human_decision == AnalysisDecision.REJECTED),
+                            1,
+                        ),
+                        else_=0,
+                    )
+                ).label("reject_after_manual_review"),
+            )
+            .select_from(AIFeedback)
+            .join(JoinRequest, JoinRequest.id == AIFeedback.join_request_id)
+            .join(TelegramChannel, TelegramChannel.id == JoinRequest.channel_id)
+        )
         row = (await self._session.execute(stmt)).one()
         return {
             "approve_after_ai_reject": int(row.approve_after_ai_reject or 0),
@@ -261,11 +326,7 @@ class AnalyticsRepository:
         }
 
     async def get_recent_feedback_raw(self, *, limit: int = 50) -> list[dict[str, Any]]:
-        stmt = (
-            select(AIFeedback)
-            .order_by(AIFeedback.created_at.desc())
-            .limit(limit)
-        )
+        stmt = self._feedback_from().order_by(AIFeedback.created_at.desc()).limit(limit)
         items = list((await self._session.execute(stmt)).scalars().all())
         result = []
         for item in items:
@@ -287,12 +348,15 @@ class AnalyticsRepository:
         since = datetime.now(UTC) - timedelta(days=days)
         day_expr = func.date_trunc("day", AIFeedback.created_at)
 
-        feedback_stmt = (
+        feedback_stmt = self._apply_channel_scope(
             select(
                 day_expr.label("day"),
                 func.count().label("feedback_count"),
                 func.sum(case((AIFeedback.was_ai_correct.is_(True), 1), else_=0)).label("matched"),
             )
+            .select_from(AIFeedback)
+            .join(JoinRequest, JoinRequest.id == AIFeedback.join_request_id)
+            .join(TelegramChannel, TelegramChannel.id == JoinRequest.channel_id)
             .where(AIFeedback.created_at >= since)
             .group_by(day_expr)
         )
@@ -307,7 +371,7 @@ class AnalyticsRepository:
 
         usage_day_expr = func.date_trunc("day", AIUsage.created_at)
         usage_stmt = (
-            select(
+            self._usage_stmt(
                 usage_day_expr.label("day"),
                 func.count().label("usage_count"),
                 func.coalesce(func.avg(AIUsage.estimated_cost), 0.0).label("avg_cost"),
@@ -329,11 +393,14 @@ class AnalyticsRepository:
         explanation_json = cast(AIAnalysis.explanation, JSONB)
         confidence_expr = cast(explanation_json["ai_result"]["confidence"].astext, Float)
         analysis_day_expr = func.date_trunc("day", AIAnalysis.created_at)
-        analysis_stmt = (
+        analysis_stmt = self._apply_channel_scope(
             select(
                 analysis_day_expr.label("day"),
                 func.coalesce(func.avg(confidence_expr), None).label("avg_confidence"),
             )
+            .select_from(AIAnalysis)
+            .join(JoinRequest, JoinRequest.id == AIAnalysis.join_request_id)
+            .join(TelegramChannel, TelegramChannel.id == JoinRequest.channel_id)
             .where(
                 AIAnalysis.created_at >= since,
                 AIAnalysis.explanation.is_not(None),
@@ -376,19 +443,15 @@ class AnalyticsRepository:
         today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
         month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
-        totals = (
-            await self._session.execute(
-                select(
-                    func.coalesce(func.sum(AIUsage.estimated_cost), 0.0),
-                    func.coalesce(func.avg(AIUsage.total_tokens), 0.0),
-                    func.coalesce(func.avg(AIUsage.latency_ms), 0.0),
-                )
-            )
-        ).one()
+        totals = (await self._session.execute(self._usage_stmt(
+            func.coalesce(func.sum(AIUsage.estimated_cost), 0.0),
+            func.coalesce(func.avg(AIUsage.total_tokens), 0.0),
+            func.coalesce(func.avg(AIUsage.latency_ms), 0.0),
+        ))).one()
 
         today_cost = (
             await self._session.execute(
-                select(func.coalesce(func.sum(AIUsage.estimated_cost), 0.0)).where(
+                self._usage_stmt(func.coalesce(func.sum(AIUsage.estimated_cost), 0.0)).where(
                     AIUsage.created_at >= today_start
                 )
             )
@@ -396,7 +459,7 @@ class AnalyticsRepository:
 
         month_cost = (
             await self._session.execute(
-                select(func.coalesce(func.sum(AIUsage.estimated_cost), 0.0)).where(
+                self._usage_stmt(func.coalesce(func.sum(AIUsage.estimated_cost), 0.0)).where(
                     AIUsage.created_at >= month_start
                 )
             )
@@ -412,7 +475,7 @@ class AnalyticsRepository:
 
     async def get_model_rankings_raw(self) -> dict[str, str | None]:
         usage_stmt = (
-            select(
+            self._usage_stmt(
                 AIUsage.model,
                 func.count().label("requests"),
                 func.coalesce(func.sum(AIUsage.estimated_cost), 0.0).label("total_cost"),
@@ -425,7 +488,7 @@ class AnalyticsRepository:
 
         explanation_json = cast(AIAnalysis.explanation, JSONB)
         model_expr = explanation_json["ai_result"]["model"].astext
-        accuracy_stmt = (
+        accuracy_stmt = self._apply_channel_scope(
             select(
                 model_expr.label("model"),
                 func.sum(case((AIFeedback.was_ai_correct.is_(True), 1), else_=0)).label("matched"),
@@ -433,6 +496,8 @@ class AnalyticsRepository:
             )
             .select_from(AIAnalysis)
             .join(AIFeedback, AIFeedback.join_request_id == AIAnalysis.join_request_id)
+            .join(JoinRequest, JoinRequest.id == AIAnalysis.join_request_id)
+            .join(TelegramChannel, TelegramChannel.id == JoinRequest.channel_id)
             .where(explanation_json["ai_result"].is_not(None), model_expr.is_not(None))
             .group_by(model_expr)
         )
@@ -459,7 +524,7 @@ class AnalyticsRepository:
         join_request_id: uuid.UUID,
     ) -> AIFeedback | None:
         stmt = (
-            select(AIFeedback)
+            self._feedback_from()
             .where(AIFeedback.join_request_id == join_request_id)
             .order_by(AIFeedback.created_at.desc())
             .limit(1)

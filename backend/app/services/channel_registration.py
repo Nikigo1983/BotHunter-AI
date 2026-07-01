@@ -1,4 +1,5 @@
 import re
+import uuid
 from typing import Final
 
 from aiogram import Bot
@@ -89,7 +90,19 @@ class ChannelRegistrationService:
                 reason="Указанный чат не является Telegram-каналом или супергруппой.",
             )
 
-        permission_error = await self._verify_bot_permissions(parsed_channel_id)
+        bootstrap = await TenantBootstrapService(self._session).ensure_default_tenant()
+        if bootstrap is None:
+            return await self._fail(
+                telegram_id=requester.id,
+                channel_id=parsed_channel_id,
+                reason="Не удалось определить организацию для подключения канала.",
+            )
+        from app.services.telegram_runtime import TelegramRuntimeService
+
+        runtime = TelegramRuntimeService(self._session)
+        org_bot = await runtime.get_bot(bootstrap.organization.id, fallback=self._bot)
+
+        permission_error = await self._verify_bot_permissions(parsed_channel_id, bot=org_bot)
         if permission_error:
             return await self._fail(
                 telegram_id=requester.id,
@@ -105,16 +118,6 @@ class ChannelRegistrationService:
                 reason="Этот канал уже подключён к BotHunter AI.",
             )
 
-        owner = await self._get_or_create_owner(requester)
-        platform_bot = await self._get_or_create_platform_bot(owner)
-
-        bootstrap = await TenantBootstrapService(self._session).ensure_default_tenant()
-        if bootstrap is None:
-            return await self._fail(
-                telegram_id=requester.id,
-                channel_id=parsed_channel_id,
-                reason="Не удалось определить организацию для подключения канала.",
-            )
         try:
             await PlanEnforcementService(self._session).assert_can_add_channel(
                 bootstrap.organization.id
@@ -125,6 +128,12 @@ class ChannelRegistrationService:
                 channel_id=parsed_channel_id,
                 reason=str(exc),
             )
+
+        owner = await self._get_or_create_owner(requester)
+        platform_bot = await self._get_or_create_platform_bot(
+            owner,
+            organization_id=bootstrap.organization.id,
+        )
 
         invite_link = await self._resolve_invite_link(chat)
         channel = await self._channel_repo.create(
@@ -166,11 +175,12 @@ class ChannelRegistrationService:
         except TelegramBadRequest:
             return None, "Канал не найден. Проверьте ID и попробуйте снова."
 
-    async def _verify_bot_permissions(self, chat_id: int) -> str | None:
-        bot_profile = await self._bot.get_me()
+    async def _verify_bot_permissions(self, chat_id: int, *, bot: Bot | None = None) -> str | None:
+        active_bot = bot or self._bot
+        bot_profile = await active_bot.get_me()
 
         try:
-            member = await self._bot.get_chat_member(chat_id, bot_profile.id)
+            member = await active_bot.get_chat_member(chat_id, bot_profile.id)
         except (TelegramBadRequest, TelegramForbiddenError):
             return (
                 "Не удалось проверить права бота. "
@@ -219,8 +229,18 @@ class ChannelRegistrationService:
             )
         )
 
-    async def _get_or_create_platform_bot(self, owner: User) -> TelegramBot:
-        bot_profile = await self._bot.get_me()
+    async def _get_or_create_platform_bot(
+        self,
+        owner: User,
+        *,
+        organization_id: uuid.UUID | None = None,
+    ) -> TelegramBot:
+        from app.services.telegram_runtime import TelegramRuntimeService
+
+        runtime = TelegramRuntimeService(self._session)
+        bot_token = await runtime.resolve_token(organization_id)
+        active_bot = await runtime.get_bot(organization_id, fallback=self._bot)
+        bot_profile = await active_bot.get_me()
         username = bot_profile.username or f"bot_{bot_profile.id}"
 
         platform_bot = await self._bot_repo.get_by_bot_username(username)
@@ -230,7 +250,7 @@ class ChannelRegistrationService:
         return await self._bot_repo.create(
             TelegramBot(
                 owner_id=owner.id,
-                bot_token=self._settings.bot_token,
+                bot_token=bot_token or self._settings.bot_token,
                 bot_username=username,
             )
         )
