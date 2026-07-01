@@ -4,7 +4,7 @@
 
 BotHunter AI follows clean architecture with clear separation of concerns.
 
-**Текущая версия:** v1.9 — Investigation Center & Decision Audit.
+**Текущая версия:** v2.1 — Adaptive Intelligence & Policy Center.
 
 ## Layers
 
@@ -23,7 +23,8 @@ Infrastructure →  database/, repositories/, config/, ai/, utils/
 | `bot/`      | Aiogram handlers and bot lifecycle      |
 | `ai/`       | AI Layer (`AIService`, providers)       |
 | `services/` | Business logic                          |
-| `rules/`    | Rule Engine (profile scoring)           |
+| `rules/`    | Rule Engine (profile scoring, configurable via Policy Center v2.1) |
+| `policy/`   | Policy types, effective policy builder (v2.1) |
 | `features/` | Feature extraction (`FeatureSet`)       |
 | `risk/`     | Risk Profile (`RiskProfileBuilder`)     |
 | `reputation/` | Reputation Engine (`ReputationService`) |
@@ -53,8 +54,20 @@ Infrastructure →  database/, repositories/, config/, ai/, utils/
 | `Blacklist` | Чёрный список |
 | `Whitelist` | Белый список |
 | `AuditLog` | Аудит действий |
+| `PolicyVersion` | Версия политики модерации (v2.1) |
+| `PolicyRuleConfig` | Снимок правила на версию (v2.1) |
+| `PolicyThresholdConfigModel` | Снимок порогов на версию (v2.1) |
 
 Подробности, связи, индексы и ER-диаграмма: [docs/database.md](database.md).
+
+## Policy Center (v2.1)
+
+- `PolicyRepository`, `PolicyService`, `PolicySimulationService`
+- Versioned rule/threshold snapshots in PostgreSQL
+- Join pipeline and Investigation replay resolve effective policy at runtime
+- Dashboard UI: `/admin/policies`
+
+See [docs/policy_center.md](policy_center.md).
 
 ## Repository layer (v0.3)
 

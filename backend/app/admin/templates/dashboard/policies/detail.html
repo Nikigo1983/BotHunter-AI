@@ -1,0 +1,86 @@
+{% extends "dashboard/base.html" %}
+{% block title %}{{ rule.rule_key }} — Policies{% endblock %}
+{% block content %}
+<div class="mb-4">
+    <a href="/admin/policies" class="text-decoration-none">&larr; All policies</a>
+    <h1 class="h3 mt-2 mb-1">{{ rule.rule_key }}</h1>
+    <p class="text-muted">{{ rule.description }}</p>
+</div>
+
+{% if request.query_params.get('saved') %}
+<div class="alert alert-success">Policy saved. New version created.</div>
+{% endif %}
+
+<div class="row g-4">
+    <div class="col-lg-7">
+        <div class="card shadow-sm">
+            <div class="card-header">Rule Editor</div>
+            <div class="card-body">
+                <form method="post" action="/admin/policies/{{ rule.rule_key }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <div class="mb-3">
+                        <label class="form-label">Score</label>
+                        <input type="number" name="score" class="form-control" value="{{ rule.score }}" min="0" max="100" {% if not can_edit %}disabled{% endif %}>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" name="enabled" class="form-check-input" id="enabled" {% if rule.enabled %}checked{% endif %} {% if not can_edit %}disabled{% endif %}>
+                        <label class="form-check-label" for="enabled">Enabled</label>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea name="description" class="form-control" rows="2" {% if not can_edit %}disabled{% endif %}>{{ rule.description }}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Admin comment</label>
+                        <textarea name="admin_comment" class="form-control" rows="2" {% if not can_edit %}disabled{% endif %}>{{ rule.admin_comment or '' }}</textarea>
+                    </div>
+                    {% if can_edit %}
+                    <button type="submit" class="btn btn-primary">Save policy</button>
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card shadow-sm mb-3">
+            <div class="card-header">Rule Analytics</div>
+            <div class="card-body small">
+                <div class="row g-2">
+                    <div class="col-6">Triggered: <strong>{{ rule.triggered_count }}</strong></div>
+                    <div class="col-6">False positives: <strong>{{ rule.false_positives }}</strong></div>
+                    <div class="col-6">Precision: <strong>{% if rule.precision is not none %}{{ (rule.precision * 100) | round(1) }}%{% else %}—{% endif %}</strong></div>
+                    <div class="col-6">Recall: <strong>{% if rule.recall is not none %}{{ (rule.recall * 100) | round(1) }}%{% else %}—{% endif %}</strong></div>
+                    <div class="col-6">FPR: <strong>{% if rule.false_positive_rate is not none %}{{ (rule.false_positive_rate * 100) | round(1) }}%{% else %}—{% endif %}</strong></div>
+                    <div class="col-6">FNR: <strong>{% if rule.false_negative_rate is not none %}{{ (rule.false_negative_rate * 100) | round(1) }}%{% else %}—{% endif %}</strong></div>
+                </div>
+            </div>
+        </div>
+        <div class="card shadow-sm">
+            <div class="card-header">Rule Simulator (last {{ simulation.sample_size }} cases)</div>
+            <div class="card-body">
+                {% if preview %}<div class="alert alert-info py-2">Preview only — nothing saved.</div>{% endif %}
+                <table class="table table-sm mb-3">
+                    <thead><tr><th></th><th>Approve</th><th>Reject</th><th>Manual</th></tr></thead>
+                    <tbody>
+                    <tr><td>Current</td><td>{{ simulation.baseline.approved }}</td><td>{{ simulation.baseline.rejected }}</td><td>{{ simulation.baseline.manual_review }}</td></tr>
+                    <tr><td>Simulated</td><td>{{ simulation.simulated.approved }}</td><td>{{ simulation.simulated.rejected }}</td><td>{{ simulation.simulated.manual_review }}</td></tr>
+                    <tr class="table-light fw-semibold"><td>Delta</td>
+                        <td>{% if simulation.delta.approved > 0 %}+{% endif %}{{ simulation.delta.approved }}</td>
+                        <td>{% if simulation.delta.rejected > 0 %}+{% endif %}{{ simulation.delta.rejected }}</td>
+                        <td>{% if simulation.delta.manual_review > 0 %}+{% endif %}{{ simulation.delta.manual_review }}</td>
+                    </tr>
+                    </tbody>
+                </table>
+                {% if can_edit %}
+                <form method="post" action="/admin/policies/{{ rule.rule_key }}/simulate">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <input type="hidden" name="score" id="sim-score" value="{{ rule.score }}">
+                    <input type="hidden" name="enabled" id="sim-enabled" value="{% if rule.enabled %}on{% else %}off{% endif %}">
+                    <button type="submit" class="btn btn-outline-secondary btn-sm">Re-run simulation</button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

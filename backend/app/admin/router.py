@@ -20,6 +20,7 @@ from app.services.analytics import AnalyticsService
 from app.services.admin_dashboard import AdminDashboardService, PAGE_SIZE
 from app.services.admin_join_request_action import AdminJoinRequestActionService
 from app.services.investigation import InvestigationService
+from app.services.policy import PolicyService
 
 ADMIN_TEMPLATES = Jinja2Templates(
     directory=str(Path(__file__).resolve().parent / "templates"),
@@ -60,6 +61,12 @@ async def get_channel_service(
     session: AsyncSession = Depends(get_db_session),
 ) -> AdminChannelService:
     return AdminChannelService(session)
+
+
+async def get_policy_service(
+    session: AsyncSession = Depends(get_db_session),
+) -> PolicyService:
+    return PolicyService(session)
 
 
 async def get_investigation_service(
@@ -257,6 +264,7 @@ async def admin_join_request_detail(
     msg: str | None = Query(default=None),
     service: AdminDashboardService = Depends(get_admin_service),
     investigation_service: InvestigationService = Depends(get_investigation_service),
+    policy_service: PolicyService = Depends(get_policy_service),
 ) -> HTMLResponse:
     parsed_id = _parse_join_request_id(join_request_id)
     detail = await service.get_join_request_detail(parsed_id)
@@ -264,6 +272,7 @@ async def admin_join_request_detail(
         raise HTTPException(status_code=404, detail="Join request not found")
 
     investigation = await investigation_service.get_investigation_detail(parsed_id)
+    policy_versions = await policy_service.list_history(limit=20)
     replay = None
     if flash == "replay" and msg:
         try:
@@ -277,6 +286,7 @@ async def admin_join_request_detail(
         {
             "detail": detail,
             "investigation": investigation,
+            "policy_versions": policy_versions,
             "replay": replay,
             "flash": flash,
             "flash_message": msg if flash != "replay" else None,
@@ -288,9 +298,11 @@ async def admin_join_request_detail(
 async def admin_replay_action(
     join_request_id: str,
     investigation_service: InvestigationService = Depends(get_investigation_service),
+    policy_version_id: str | None = Form(default=None),
 ) -> RedirectResponse:
     parsed_id = _parse_join_request_id(join_request_id)
-    replay = await investigation_service.replay_analysis(parsed_id)
+    version_id = uuid.UUID(policy_version_id) if policy_version_id else None
+    replay = await investigation_service.replay_analysis(parsed_id, policy_version_id=version_id)
     if replay is None:
         raise HTTPException(status_code=404, detail="Join request not found")
     payload = quote(json.dumps(
@@ -301,6 +313,7 @@ async def admin_replay_action(
             "ai_decision": replay.ai_decision,
             "ai_score": replay.ai_score,
             "final_decision": replay.final_decision,
+            "policy_version_number": replay.policy_version_number,
         },
         ensure_ascii=False,
         default=str,

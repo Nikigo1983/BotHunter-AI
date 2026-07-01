@@ -112,6 +112,8 @@ class ReplayResultDTO:
     prompt: PromptViewDTO
     ai_response: dict[str, Any] | None
     triggered_rules: list[dict[str, Any]]
+    policy_version_number: int | None = None
+    policy_version_id: uuid.UUID | None = None
 
 
 class InvestigationFiltersRequest(BaseModel):
@@ -191,3 +193,9 @@ class ReplayResponse(BaseModel):
     prompt: dict[str, str]
     ai_response: dict[str, Any] | None
     triggered_rules: list[dict[str, Any]]
+    policy_version_number: int | None = None
+    policy_version_id: uuid.UUID | None = None
+
+
+class ReplayRequest(BaseModel):
+    policy_version_id: uuid.UUID | None = None

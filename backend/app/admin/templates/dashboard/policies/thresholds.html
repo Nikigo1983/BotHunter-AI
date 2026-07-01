@@ -1,0 +1,52 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Global Thresholds — BotHunter Admin{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">Global Threshold Editor</h1>
+        <p class="text-muted mb-0">Policy v{{ version_number }} · Approve / Manual Review / Reject / Trust / AI</p>
+    </div>
+    <a href="/admin/policies" class="btn btn-outline-secondary btn-sm">&larr; Policies</a>
+</div>
+
+{% if request.query_params.get('saved') %}
+<div class="alert alert-success">Thresholds saved. New policy version created.</div>
+{% endif %}
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <form method="post" action="/admin/policies/thresholds">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Approve below</label>
+                    <input type="number" name="approve_below" class="form-control" value="{{ thresholds.approve_below }}" min="0" max="100" {% if not can_edit %}disabled{% endif %}>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Reject from</label>
+                    <input type="number" name="reject_from" class="form-control" value="{{ thresholds.reject_from }}" min="0" max="100" {% if not can_edit %}disabled{% endif %}>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">AI threshold</label>
+                    <input type="number" step="0.01" name="ai_threshold" class="form-control" value="{{ thresholds.ai_threshold }}" min="0" max="1" {% if not can_edit %}disabled{% endif %}>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Trust auto-approve</label>
+                    <input type="number" name="trust_auto_approve" class="form-control" value="{{ thresholds.trust_auto_approve }}" min="0" max="100" {% if not can_edit %}disabled{% endif %}>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Trust auto-reject</label>
+                    <input type="number" name="trust_auto_reject" class="form-control" value="{{ thresholds.trust_auto_reject }}" min="0" max="100" {% if not can_edit %}disabled{% endif %}>
+                </div>
+                <div class="col-md-8">
+                    <label class="form-label">Comment</label>
+                    <input type="text" name="comment" class="form-control" placeholder="Why these thresholds changed" {% if not can_edit %}disabled{% endif %}>
+                </div>
+            </div>
+            {% if can_edit %}
+            <button type="submit" class="btn btn-primary mt-3">Save thresholds</button>
+            {% endif %}
+        </form>
+    </div>
+</div>
+{% endblock %}

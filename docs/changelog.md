@@ -1,5 +1,33 @@
 # BotHunter AI — Changelog
 
+## [2.1.0] — 2026-06-30
+
+### Added — Adaptive Intelligence & Policy Center
+
+- **Policy Center** — `/admin/policies` lists all Rule Engine rules with score, enabled, analytics, last change.
+- **Rule Editor** — `/admin/policies/{rule}` edit score, enabled, description, admin comment without Python changes.
+- **Rule Simulator** — dry-run last 100 join requests before save (Approve/Reject/Manual deltas, no DB writes).
+- **Policy Versioning** — every change creates Policy vN; history + rollback to any snapshot.
+- **Decision Replay** — Investigation Center replay with Current Policy or Policy vN.
+- **Global Threshold Editor** — `/admin/policies/thresholds` for approve/reject/trust/AI thresholds (not `.env`).
+- **Policy Comparison** — current vs previous diff for scores, enabled, thresholds.
+- **Rule Analytics** — accuracy, precision, recall, FPR/FNR per rule (from Analytics + feedback).
+- `PolicyRepository`, `PolicyService`, `PolicySimulationService`, configurable `BaseRule`.
+- REST API: `/api/v1/admin/policies`, simulate, rollback, history, compare, thresholds.
+- Migration `h8i9j0k2l3m4`, docs: `docs/policy_center.md`.
+- Tests: `tests/admin/test_policy_center.py`.
+
+### Changed
+
+- `JoinRequestProcessingService` loads effective policy from DB when engines not injected (tests unchanged).
+- Dashboard nav: Policies after Channels.
+
+### Not changed (by design)
+
+- Telegram Bot, AI Gateway, OpenRouterProvider, Authentication, Investigation Center core
+
+---
+
 ## [2.0.0] — 2026-06-30
 
 ### Added — Production Readiness

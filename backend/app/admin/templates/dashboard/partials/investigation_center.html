@@ -5,8 +5,14 @@
         <div class="d-flex flex-wrap gap-2">
             <a href="/admin/join-request/{{ detail.id }}/export/json" class="btn btn-sm btn-outline-secondary">Export JSON</a>
             <a href="/admin/join-request/{{ detail.id }}/export/pdf" class="btn btn-sm btn-outline-secondary">Export PDF</a>
-            <form method="post" action="/admin/join-request/{{ detail.id }}/replay" class="d-inline">
+            <form method="post" action="/admin/join-request/{{ detail.id }}/replay" class="d-inline d-flex align-items-center gap-2 flex-wrap">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <select name="policy_version_id" class="form-select form-select-sm" style="width:auto;">
+                    <option value="">Current Policy</option>
+                    {% for version in policy_versions %}
+                    <option value="{{ version.id }}">Policy v{{ version.version_number }}{% if version.is_current %} (current){% endif %}</option>
+                    {% endfor %}
+                </select>
                 <button type="submit" class="btn btn-sm btn-outline-warning">Replay Analysis</button>
             </form>
         </div>
@@ -15,7 +21,7 @@
         {% if replay %}
         <div class="alert alert-warning">
             <div class="fw-semibold mb-2">Replay Result (не сохранено в БД)</div>
-            <div class="small">Rule {{ replay.rule_score }} → {{ format_decision_label(replay.rule_engine_decision) }}
+            <div class="small">Policy v{{ replay.policy_version_number or "?" }} · Rule {{ replay.rule_score }} → {{ format_decision_label(replay.rule_engine_decision) }}
                 · AI {{ replay.ai_status }} → {{ format_decision_label(replay.ai_decision) if replay.ai_decision else "—" }}
                 · Final {{ format_decision_label(replay.final_decision) }}</div>
         </div>

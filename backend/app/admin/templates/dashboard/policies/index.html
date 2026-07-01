@@ -1,0 +1,61 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Policies — BotHunter Admin{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">Policy Center</h1>
+        <p class="text-muted mb-0">Policy v{{ policy.version_number }} · управление Rule Engine без изменения кода</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="/admin/policies/thresholds" class="btn btn-outline-primary btn-sm">Thresholds</a>
+        <a href="/admin/policies/compare" class="btn btn-outline-secondary btn-sm">Compare</a>
+        <a href="/admin/policies/history" class="btn btn-outline-secondary btn-sm">History</a>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                <tr>
+                    <th>Rule</th>
+                    <th>Description</th>
+                    <th>Score</th>
+                    <th>Enabled</th>
+                    <th>Triggered</th>
+                    <th>Accuracy</th>
+                    <th>False Positives</th>
+                    <th>Last Change</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for rule in rules %}
+                <tr>
+                    <td><a href="/admin/policies/{{ rule.rule_key }}" class="fw-semibold text-decoration-none">{{ rule.rule_key }}</a></td>
+                    <td class="small">{{ rule.description }}</td>
+                    <td><span class="badge text-bg-primary">{{ rule.score }}</span></td>
+                    <td>
+                        {% if rule.enabled %}
+                        <span class="badge text-bg-success">On</span>
+                        {% else %}
+                        <span class="badge text-bg-secondary">Off</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ rule.triggered_count }}</td>
+                    <td>{% if rule.accuracy is not none %}{{ (rule.accuracy * 100) | round(1) }}%{% else %}—{% endif %}</td>
+                    <td>{{ rule.false_positives }}</td>
+                    <td class="small">
+                        {% if rule.last_changed_at %}
+                        {{ rule.last_changed_at.strftime("%Y-%m-%d %H:%M") }}<br>
+                        <span class="text-muted">{{ rule.last_changed_by or "—" }}</span>
+                        {% else %}—{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,3 +1,5 @@
+import uuid
+
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -9,9 +11,10 @@ from app.services.dashboard_user import DashboardUserService
 @pytest.mark.asyncio
 async def test_upsert_creates_user_with_audit(session: AsyncSession) -> None:
     service = DashboardUserService(session)
+    email = f"created-{uuid.uuid4().hex[:8]}@example.com"
     result = await service.upsert_user(
         full_name="Veronika",
-        email="virineya1983@gmail.com",
+        email=email,
         role=DashboardRole.OWNER,
         password="SecretPass123!",
         actor="test",
@@ -25,7 +28,7 @@ async def test_upsert_creates_user_with_audit(session: AsyncSession) -> None:
     assert "User created" in actions
     assert "Role assigned" in actions
 
-    assert await service.verify_login("virineya1983@gmail.com", "SecretPass123!")
+    assert await service.verify_login(email, "SecretPass123!")
 
 
 @pytest.mark.asyncio

@@ -59,6 +59,9 @@ class JoinRequestProcessingService:
     ) -> None:
         self._session = session
         self._bot = bot
+        self._rule_engine_override = rule_engine
+        self._decision_engine_override = decision_engine
+        self._use_policy_engines = rule_engine is None and decision_engine is None
         self._rule_engine = rule_engine or RuleEngine()
         self._decision_engine = decision_engine or DecisionEngine()
         self._risk_profile_builder = risk_profile_builder or RiskProfileBuilder(
@@ -149,20 +152,21 @@ class JoinRequestProcessingService:
             )
 
         features = self._feature_extractor.extract(telegram_user)
-        rule_result = self._rule_engine.evaluate(features)
+        rule_engine, decision_engine, risk_profile_builder = await self._resolve_engines()
+        rule_result = rule_engine.evaluate(features)
         reputation_history = await self._reputation_service.get_history(telegram_user.id, limit=5)
         history_lines = [
             f"{item.reason.value}: {item.old_score:.0f} -> {item.new_score:.0f}"
             for item in reputation_history
         ]
-        risk_profile = self._risk_profile_builder.build(
+        risk_profile = risk_profile_builder.build(
             features,
             rule_result,
             trust_score=trust_score,
             rule_score=float(rule_result.rule_score),
             history=history_lines or None,
         )
-        initial_decision = self._decision_engine.decide(rule_result.rule_score)
+        initial_decision = decision_engine.decide(rule_result.rule_score)
 
         ai_service_result: AIServiceResult | None = None
         if initial_decision == AnalysisDecision.MANUAL_REVIEW:
@@ -185,7 +189,7 @@ class JoinRequestProcessingService:
             )
         )
 
-        join_request.status = self._decision_engine.map_to_join_request_status(final_decision)
+        join_request.status = decision_engine.map_to_join_request_status(final_decision)
         await self._join_request_repo.update(join_request)
 
         action_taken = await self._apply_telegram_action(
@@ -217,6 +221,17 @@ class JoinRequestProcessingService:
             channel_title=channel_title,
             action_taken=action_taken,
         )
+
+    async def _resolve_engines(self):
+        if not self._use_policy_engines:
+            return self._rule_engine, self._decision_engine, self._risk_profile_builder
+        from app.services.policy import PolicyService
+
+        policy = await PolicyService(self._session).get_effective_policy()
+        rule_engine = policy.build_rule_engine()
+        decision_engine = policy.build_decision_engine()
+        risk_profile_builder = RiskProfileBuilder(thresholds=decision_engine.thresholds)
+        return rule_engine, decision_engine, risk_profile_builder
 
     async def _process_list_match(
         self,

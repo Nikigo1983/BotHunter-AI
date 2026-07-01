@@ -6,6 +6,26 @@ OpenAPI: `/docs`
 
 ---
 
+## Admin — Policies (v2.1)
+
+Prefix: `/admin/policies`
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `` | List all rules + current version |
+| GET | `/{rule_key}` | Single rule detail |
+| PATCH | `/{rule_key}` | Update rule (creates new version) |
+| GET | `/thresholds` | Current global thresholds |
+| PATCH | `/thresholds` | Update thresholds |
+| POST | `/simulate` | Simulate rule/threshold change |
+| POST | `/rollback` | Rollback to policy version |
+| GET | `/history` | Policy version history |
+| GET | `/compare` | Compare current vs previous |
+
+See [docs/policy_center.md](policy_center.md).
+
+---
+
 ## Admin — Investigations (v1.9)
 
 Prefix: `/admin/investigations`
@@ -16,7 +36,7 @@ Prefix: `/admin/investigations`
 | GET | `/{id}` | Case detail |
 | GET | `/{id}/timeline` | Decision timeline |
 | GET | `/{id}/export?format=json\|pdf` | Export case |
-| POST | `/{id}/replay` | Replay AI analysis |
+| POST | `/{id}/replay` | Replay AI analysis (optional `policy_version_id`) |
 
 See [docs/investigation_center.md](investigation_center.md).
 

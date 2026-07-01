@@ -1,0 +1,56 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Policy History — BotHunter Admin{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">Policy Versioning</h1>
+        <p class="text-muted mb-0">Каждое изменение создаёт новую версию. Rollback без изменения Python-кода.</p>
+    </div>
+    <a href="/admin/policies" class="btn btn-outline-secondary btn-sm">&larr; Policies</a>
+</div>
+
+{% if request.query_params.get('rolled_back') %}
+<div class="alert alert-success">Rollback completed. New policy version created from selected snapshot.</div>
+{% endif %}
+
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                <tr>
+                    <th>Version</th>
+                    <th>Date</th>
+                    <th>Author</th>
+                    <th>Comment</th>
+                    <th>Changed rules</th>
+                    <th></th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for item in history %}
+                <tr>
+                    <td>
+                        Policy v{{ item.version_number }}
+                        {% if item.is_current %}<span class="badge text-bg-success ms-1">Current</span>{% endif %}
+                    </td>
+                    <td class="small">{{ item.created_at.strftime("%Y-%m-%d %H:%M") }} UTC</td>
+                    <td>{{ item.author }}</td>
+                    <td class="small">{{ item.comment or "—" }}</td>
+                    <td class="small">{% if item.changed_rules %}{{ item.changed_rules | join(", ") }}{% else %}—{% endif %}</td>
+                    <td>
+                        {% if can_edit and not item.is_current %}
+                        <form method="post" action="/admin/policies/rollback/{{ item.id }}" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                            <button type="submit" class="btn btn-sm btn-outline-warning">Rollback</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

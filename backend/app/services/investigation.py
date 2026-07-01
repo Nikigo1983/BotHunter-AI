@@ -37,6 +37,7 @@ from app.schemas.investigation import (
 from app.services.admin_dashboard import AdminDashboardService, PAGE_SIZE, TELEGRAM_ACTION_MAP
 from app.services.decision_engine import DecisionEngine
 from app.services.join_request_processing import JoinRequestProcessingService
+from app.services.policy import PolicyService
 
 
 class InvestigationService:
@@ -226,27 +227,37 @@ class InvestigationService:
             )
         return content, media_type, filename
 
-    async def replay_analysis(self, join_request_id: uuid.UUID) -> ReplayResultDTO | None:
+    async def replay_analysis(
+        self,
+        join_request_id: uuid.UUID,
+        *,
+        policy_version_id: uuid.UUID | None = None,
+    ) -> ReplayResultDTO | None:
         row = await self._repo.get_investigation(join_request_id)
         if row is None:
             return None
 
+        policy = await PolicyService(self._session).get_effective_policy(policy_version_id)
+        rule_engine = policy.build_rule_engine()
+        decision_engine = policy.build_decision_engine()
+        risk_profile_builder = RiskProfileBuilder(thresholds=decision_engine.thresholds)
+
         features = self._feature_extractor.extract(row.telegram_user)
-        rule_result = self._rule_engine.evaluate(features)
+        rule_result = rule_engine.evaluate(features)
         trust_score = await self._reputation_service.get_score(row.telegram_user.id)
         history = await self._reputation_service.get_history(row.telegram_user.id, limit=5)
         history_lines = [
             f"{item.reason.value}: {item.old_score:.0f} -> {item.new_score:.0f}"
             for item in history
         ]
-        risk_profile = self._risk_profile_builder.build(
+        risk_profile = risk_profile_builder.build(
             features,
             rule_result,
             trust_score=trust_score,
             rule_score=float(rule_result.rule_score),
             history=history_lines or None,
         )
-        rule_engine_decision = self._decision_engine.decide(rule_result.rule_score)
+        rule_engine_decision = decision_engine.decide(rule_result.rule_score)
         ai_service_result = self._ai_service.analyze(rule_engine_decision, risk_profile)
         final_decision = JoinRequestProcessingService._resolve_final_decision(
             rule_engine_decision,
@@ -268,6 +279,8 @@ class InvestigationService:
                 "rule_engine_decision": rule_engine_decision.value,
                 "ai_status": ai_service_result.status.value,
                 "final_decision": final_decision.value,
+                "policy_version_number": policy.version_number,
+                "policy_version_id": str(policy.version_id) if policy.version_id else None,
             },
         )
 
@@ -281,6 +294,8 @@ class InvestigationService:
             prompt=PromptViewDTO(system_prompt=prompt.system, user_prompt=prompt.user),
             ai_response=ai_response,
             triggered_rules=[{"rule": item.rule, "score": item.score} for item in rule_result.triggered_rules],
+            policy_version_number=policy.version_number,
+            policy_version_id=policy.version_id,
         )
 
     async def list_channels_for_filter(self) -> list[tuple[uuid.UUID, str]]:

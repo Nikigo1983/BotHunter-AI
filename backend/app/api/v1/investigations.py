@@ -13,6 +13,7 @@ from app.schemas.investigation import (
     InvestigationListResponse,
     InvestigationListItemResponse,
     ReplayResponse,
+    ReplayRequest,
     TimelineEventResponse,
 )
 from app.services.investigation import InvestigationService
@@ -222,9 +223,11 @@ async def export_investigation(
 @router.post("/{investigation_id}/replay", response_model=ReplayResponse)
 async def replay_investigation(
     investigation_id: uuid.UUID,
+    payload: ReplayRequest | None = None,
     service: InvestigationService = Depends(get_investigation_service),
 ) -> ReplayResponse:
-    replay = await service.replay_analysis(investigation_id)
+    policy_version_id = payload.policy_version_id if payload else None
+    replay = await service.replay_analysis(investigation_id, policy_version_id=policy_version_id)
     if replay is None:
         raise HTTPException(status_code=404, detail="Investigation not found")
     return ReplayResponse(
@@ -240,4 +243,6 @@ async def replay_investigation(
         },
         ai_response=replay.ai_response,
         triggered_rules=replay.triggered_rules,
+        policy_version_number=replay.policy_version_number,
+        policy_version_id=replay.policy_version_id,
     )

@@ -25,6 +25,7 @@ from app.repositories.reputation_history import ReputationHistoryRepository
 from app.repositories.system_error import SystemErrorRepository
 from app.repositories.system_notification import SystemNotificationRepository
 from app.repositories.system_setting import SystemSettingRepository
+from app.repositories.policy import PolicyRepository
 from app.repositories.telegram_bot import TelegramBotRepository
 from app.repositories.telegram_channel import TelegramChannelRepository
 from app.repositories.telegram_user import TelegramUserRepository
@@ -130,6 +131,10 @@ def get_dashboard_user_service(session: AsyncSession):
 
 def get_dashboard_session_repository(session: AsyncSession) -> DashboardSessionRepository:
     return DashboardSessionRepository(session)
+
+
+def get_policy_repository(session: AsyncSession) -> PolicyRepository:
+    return PolicyRepository(session)
 
 
 def get_system_setting_repository(session: AsyncSession) -> SystemSettingRepository:

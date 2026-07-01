@@ -8,6 +8,8 @@ Web Admin Dashboard позволяет просматривать и обраб�
 
 OpenAI **не используется** в dashboard.
 
+**v2.1:** Policy Center — `/admin/policies`, rule editor, simulator, versioning, rollback, threshold editor.
+
 **v1.9:** Investigation Center — `/admin/investigations`, timeline, prompt/response viewers, replay, export JSON/PDF.
 
 **v1.8:** Channel Management — `/admin/channels`, per-channel settings in DB, enable/disable, REST API.
@@ -54,6 +56,10 @@ flowchart LR
 | `/admin/investigations` | Investigation Center — case list, filters (v1.9) |
 | `/admin/channels` | Список подключённых каналов (v1.8) |
 | `/admin/channels/{id}` | Карточка канала: stats, timeline, settings, enable/disable (v1.8) |
+| `/admin/policies` | Policy Center — rules, scores, analytics (v2.1) |
+| `/admin/policies/{rule}` | Rule editor + simulator (v2.1) |
+| `/admin/policies/thresholds` | Global approve/reject/trust/AI thresholds (v2.1) |
+| `/admin/policies/history` | Policy versions + rollback (v2.1) |
 | `/admin/analytics` | AI Analytics & Feedback Center (v1.7) |
 | `/admin/join-request/{id}` | Детальная карточка + Investigation Center + действия (v1.9) |
 | `/admin/partials/join-requests` | HTMX partial для таблицы |
