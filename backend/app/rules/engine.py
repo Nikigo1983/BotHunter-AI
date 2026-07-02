@@ -4,8 +4,10 @@ from typing import Any
 from app.features.feature_set import FeatureSet
 from app.rules.base import BaseRule
 from app.rules.definitions import (
+    AccountCreatedTodayRule,
     EmptyNameRule,
     LongNameRule,
+    NoLinkedPhoneRule,
     NoPhotoRule,
     NoUsernameRule,
     SuspiciousNameWordsRule,
@@ -44,6 +46,8 @@ DEFAULT_RULES: tuple[type[BaseRule], ...] = (
     TooManyEmojiRule,
     EmptyNameRule,
     UnknownLanguageRule,
+    AccountCreatedTodayRule,
+    NoLinkedPhoneRule,
 )
 
 

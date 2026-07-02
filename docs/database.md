@@ -269,3 +269,43 @@ backend/app/models/
 ├── whitelist.py
 └── audit_log.py
 ```
+
+---
+
+## Backup
+
+### Резервная копия перед релизом / go-live
+
+Скрипты (из корня репозитория):
+
+```powershell
+# Windows (Docker Desktop)
+.\scripts\backup_database.ps1
+```
+
+```bash
+# Linux / macOS
+./scripts/backup_database.sh
+```
+
+Дампы сохраняются в `backups/` с именем `bothunter_YYYYMMDD_HHMMSS.sql` (каталог в `.gitignore`).
+
+Требования: контейнер `bothunter-postgres` запущен (`docker compose -f docker/docker-compose.yml up -d`).
+
+### Ручной pg_dump
+
+```bash
+docker exec bothunter-postgres pg_dump -U bothunter bothunter > backups/bothunter_manual.sql
+```
+
+### Dashboard Backup (JSON/SQL/CSV)
+
+Админ-панель v2.0+: **Settings → Backup/Restore** — экспорт конфигурации и данных без прямого доступа к PostgreSQL.
+
+### Восстановление
+
+```bash
+docker exec -i bothunter-postgres psql -U bothunter -d bothunter < backups/bothunter_YYYYMMDD_HHMMSS.sql
+```
+
+Перед restore на production — остановите API/bot и сделайте второй backup текущего состояния.

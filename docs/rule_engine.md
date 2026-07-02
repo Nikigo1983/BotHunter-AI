@@ -2,11 +2,13 @@
 
 ## Обзор
 
-Rule Engine (v0.5+) оценивает профиль по набору детерминированных правил на основе **FeatureSet** (v0.7).
+Rule Engine оценивает профиль по набору детерминированных правил на основе **FeatureSet**.
 
 ```
 TelegramUser → FeatureExtractor → FeatureSet → RuleEngine → rule_score
 ```
+
+Пороги решений и эвристики аккаунта — в `backend/config/decision_thresholds.yaml` (см. [join_request_processing.md](join_request_processing.md)).
 
 ---
 
@@ -14,25 +16,17 @@ TelegramUser → FeatureExtractor → FeatureSet → RuleEngine → rule_score
 
 ```mermaid
 flowchart LR
-    TU[TelegramUser] --> RE[RuleEngine]
-    RE --> R1[NoPhotoRule]
-    RE --> R2[NoUsernameRule]
-    RE --> R3[UsernameManyDigitsRule]
-    RE --> R4[UsernameConsecutiveDigitsRule]
-    RE --> R5[SuspiciousNameWordsRule]
-    RE --> R6[LongNameRule]
-    RE --> R7[TooManyEmojiRule]
-    RE --> R8[EmptyNameRule]
-    RE --> R9[UnknownLanguageRule]
+    TU[TelegramUser] --> FE[FeatureExtractor]
+    FE --> FS[FeatureSet]
+    FS --> RE[RuleEngine]
+    RE --> R1[Profile rules]
+    RE --> R2[Username rules]
+    RE --> R3[Name rules]
+    RE --> R4[Account age rules]
     R1 --> OUT[JSON Result]
     R2 --> OUT
     R3 --> OUT
     R4 --> OUT
-    R5 --> OUT
-    R6 --> OUT
-    R7 --> OUT
-    R8 --> OUT
-    R9 --> OUT
 ```
 
 ---
@@ -43,16 +37,18 @@ flowchart LR
 
 | Метод | Назначение |
 |-------|------------|
-| `calculate(user)` | Возвращает score правила, если оно сработало, иначе `0` |
+| `calculate(features)` | Возвращает score правила, если оно сработало, иначе `0` |
 | `description()` | Текстовое описание правила |
 | `weight()` | Максимальный вклад правила в score |
 
+Веса и `enabled` настраиваются в **Policy Center** (`/admin/policies`) без изменения Python-кода.
+
 ---
 
-## Правила
+## Правила (11)
 
-| Класс | Условие | Score |
-|-------|---------|------:|
+| Класс | Условие | Score (default) |
+|-------|---------|----------------:|
 | `NoPhotoRule` | `has_photo == False` | +20 |
 | `NoUsernameRule` | username пустой | +10 |
 | `UsernameManyDigitsRule` | > 6 цифр в username | +15 |
@@ -62,13 +58,32 @@ flowchart LR
 | `TooManyEmojiRule` | >= 3 emoji в имени | +15 |
 | `EmptyNameRule` | пустое имя (first + last) | +30 |
 | `UnknownLanguageRule` | `language_code` пустой | +5 |
+| `AccountCreatedTodayRule` | оценка: аккаунт Telegram создан сегодня (User ID) | +35 |
+| `NoLinkedPhoneRule` | эвристика: номер телефона не привязан | +15 |
+
+### Account age & phone (v3.0.0)
+
+Telegram Bot API **не отдаёт** дату регистрации и статус привязки телефона. BotHunter использует:
+
+1. **Оценку даты регистрации** — линейная интерполяция по эталонным User ID (`app/features/telegram_account.py`).
+2. **Эвристику телефона** — Premium и старые аккаунты считаются верифицированными; свежие non-Premium — вероятно без телефона.
+
+Пороги в YAML:
+
+```yaml
+telegram_account_heuristics:
+  no_phone_inference_max_age_days: 45
+  linked_phone_assumed_min_age_days: 120
+```
+
+Серая зона (46–120 дней): `NoLinkedPhoneRule` не срабатывает.
 
 ---
 
 ## Подсчёт score
 
 1. `RuleEngine` последовательно применяет все правила.
-2. Если `calculate(user) > 0`, правило попадает в `triggered_rules`.
+2. Если `calculate(features) > 0`, правило попадает в `triggered_rules`.
 3. `rule_score` = сумма `score` всех сработавших правил.
 
 Правила независимы: несколько правил могут сработать одновременно.
@@ -79,20 +94,10 @@ flowchart LR
 
 ```json
 {
-  "rule_score": 55,
+  "rule_score": 50,
   "triggered_rules": [
-    {
-      "rule": "NoPhotoRule",
-      "score": 20
-    },
-    {
-      "rule": "UsernameManyDigitsRule",
-      "score": 15
-    },
-    {
-      "rule": "UsernameConsecutiveDigitsRule",
-      "score": 20
-    }
+    {"rule": "AccountCreatedTodayRule", "score": 35},
+    {"rule": "NoLinkedPhoneRule", "score": 15}
   ]
 }
 ```
@@ -125,21 +130,11 @@ backend/app/rules/
 
 ```bash
 cd backend
-python -m pytest tests/rules/ -v
+python -m pytest tests/rules/ tests/features/test_telegram_account.py -v
 ```
 
 Покрытие:
 
 - каждое правило отдельно;
 - полный `RuleEngine`;
-- граничные случаи (6 vs 7 цифр, 4 vs 5 подряд, 30 vs 31 символ).
-
----
-
-## Ограничения v0.5
-
-- OpenAI / AI **не используется**.
-- Rule Engine **не принимает решение** (approve/reject).
-- Join Request **не обрабатывается** на этом этапе.
-
-Следующий этап: интеграция `rule_score` в pipeline анализа заявок.
+- граничные случаи (цифры в username, длина имени, account age heuristics).

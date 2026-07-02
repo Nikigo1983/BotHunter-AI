@@ -120,3 +120,32 @@ class UnknownLanguageRule(BaseRule):
 
     def default_weight(self) -> int:
         return 5
+
+
+class AccountCreatedTodayRule(BaseRule):
+    def calculate(self, features: FeatureSet) -> int:
+        if not self._enabled:
+            return 0
+        return self.weight() if features.profile.account_created_today else 0
+
+    def default_description(self) -> str:
+        return "Аккаунт Telegram создан сегодня (оценка по User ID)"
+
+    def default_weight(self) -> int:
+        return 35
+
+
+class NoLinkedPhoneRule(BaseRule):
+    def calculate(self, features: FeatureSet) -> int:
+        if not self._enabled:
+            return 0
+        return self.weight() if features.profile.has_linked_phone is False else 0
+
+    def default_description(self) -> str:
+        return (
+            "К аккаунту не привязан номер телефона "
+            "(эвристика: Bot API не передаёт статус напрямую)"
+        )
+
+    def default_weight(self) -> int:
+        return 15

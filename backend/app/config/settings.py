@@ -50,6 +50,8 @@ class Settings(BaseSettings):
 
     decision_approve_below: int = 30
     decision_reject_from: int = 70
+    telegram_no_phone_max_age_days: int = 45
+    telegram_linked_phone_min_age_days: int = 120
 
     dashboard_session_secret: str = "change-me-in-production"
     dashboard_session_max_age_hours: int = 24

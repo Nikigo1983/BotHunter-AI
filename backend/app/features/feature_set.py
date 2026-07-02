@@ -9,6 +9,8 @@ class ProfileFeatures:
     has_username: bool
     is_premium: bool
     language: str | None
+    account_created_today: bool
+    has_linked_phone: bool | None
 
 
 @dataclass(slots=True)

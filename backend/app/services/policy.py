@@ -361,7 +361,7 @@ class PolicyService:
 
     async def _load_rules_dict(self, version_id: uuid.UUID) -> dict[str, RulePolicyConfig]:
         rows = await self._repo.get_rule_configs(version_id)
-        return {
+        rules = {
             row.rule_key: RulePolicyConfig(
                 rule_key=row.rule_key,
                 score=row.score,
@@ -371,6 +371,9 @@ class PolicyService:
             )
             for row in rows
         }
+        for rule_key, default in build_default_rule_configs().items():
+            rules.setdefault(rule_key, default)
+        return rules
 
     async def _load_thresholds(self, version_id: uuid.UUID) -> PolicyThresholdConfig:
         row = await self._repo.get_threshold_config(version_id)

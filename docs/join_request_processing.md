@@ -92,9 +92,23 @@ flowchart TD
 ```env
 DECISION_APPROVE_BELOW=30
 DECISION_REJECT_FROM=70
+TELEGRAM_NO_PHONE_MAX_AGE_DAYS=45
+TELEGRAM_LINKED_PHONE_MIN_AGE_DAYS=120
 ```
 
-`DecisionEngine` и `RiskProfileBuilder` используют одни и те же пороги.
+### Эвристики аккаунта Telegram (v3.0.0)
+
+Секция `telegram_account_heuristics` в том же YAML:
+
+```yaml
+telegram_account_heuristics:
+  no_phone_inference_max_age_days: 45
+  linked_phone_assumed_min_age_days: 120
+```
+
+Загрузка: `get_telegram_account_heuristics()` в `app/config/decision_settings.py`.
+
+`DecisionEngine` и `RiskProfileBuilder` используют одни и те же пороги решений.
 
 ---
 

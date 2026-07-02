@@ -14,6 +14,8 @@ RULE_NEGATIVE_LABELS: dict[str, str] = {
     "TooManyEmojiRule": "Слишком много emoji в имени",
     "EmptyNameRule": "Пустое имя",
     "UnknownLanguageRule": "Язык профиля неизвестен",
+    "AccountCreatedTodayRule": "Аккаунт Telegram создан сегодня",
+    "NoLinkedPhoneRule": "К аккаунту не привязан номер телефона",
 }
 
 TRUST_POSITIVE_THRESHOLD = 70.0

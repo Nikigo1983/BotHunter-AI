@@ -2,6 +2,17 @@
 
 ## [3.0.0] — 2026-06-30
 
+### Added — Account Age & Phone Risk Rules (v3.0.0)
+
+- **`AccountCreatedTodayRule`** (+35) — оценка даты регистрации Telegram по User ID (линейная интерполяция).
+- **`NoLinkedPhoneRule`** (+15) — эвристика «номер не привязан» (Bot API не передаёт статус напрямую).
+- Модуль `app/features/telegram_account.py`, расширен `ProfileFeatures` (`account_created_today`, `has_linked_phone`).
+- `FeatureExtractor` v1.1.0 — учитывает `telegram_id`.
+- Пороги эвристики в `backend/config/decision_thresholds.yaml` (`telegram_account_heuristics`: 45 / 120 дней).
+- Env overrides: `TELEGRAM_NO_PHONE_MAX_AGE_DAYS`, `TELEGRAM_LINKED_PHONE_MIN_AGE_DAYS`.
+- Policy Center: новые правила автоматически подмешиваются в существующие политики.
+- Tests: `tests/features/test_telegram_account.py`, `tests/config/test_decision_settings.py`.
+
 ### Added — SaaS Completion (Phase 3)
 
 - **Organization Management** — `/admin/organizations`: create, update, archive, delete (Owner only).
@@ -23,14 +34,15 @@
 
 ### Release Notes
 
-BotHunter AI v3.0.0 completes the multi-tenant SaaS platform:
+BotHunter AI v3.0.0 completes the multi-tenant SaaS platform and strengthens join-request scoring:
 
 1. Self-service organization and workspace provisioning for Owners.
 2. Full tenant isolation across Dashboard, Investigations, Analytics, Billing, and AI Usage.
 3. Per-organization OpenRouter and Telegram secrets with runtime fallback.
 4. Onboarding wizard and production release checklist for go-live validation.
+5. **New risk rules:** account created today (+35) and likely no linked phone (+15), with YAML-configurable heuristics.
 
-**Recommended next step:** deploy to test Telegram channels, collect real join-request cases for 2–4 weeks, then plan v3.1 from user feedback.
+See [release_notes_v3.0.0.md](release_notes_v3.0.0.md) for full release notes.
 
 ---
 

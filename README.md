@@ -78,7 +78,9 @@ BotHunter AI смотрит на заявку глубже: анализируе
 
 ## Текущая версия
 
-**v1.0-beta** — интегрированный production pipeline join request с AI для MANUAL_REVIEW.
+**v3.0.0** — multi-tenant SaaS, onboarding, tenant-scoped analytics/investigations, Rule Engine account-age & phone heuristics.
+
+Подробнее: [Release Notes v3.0.0](docs/release_notes_v3.0.0.md) · [Changelog](docs/changelog.md)
 
 ---
 
@@ -90,6 +92,8 @@ BotHunter AI смотрит на заявку глубже: анализируе
 - [База данных](docs/database.md)
 - [Repository-слой](docs/repositories.md)
 - [Changelog](docs/changelog.md)
+- [Release Notes v3.0.0](docs/release_notes_v3.0.0.md)
+- [Multi-Tenant SaaS](docs/multi_tenant.md)
 
 ---
 

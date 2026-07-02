@@ -5,8 +5,10 @@ from dataclasses import dataclass, field
 
 from app.config.decision_settings import DecisionThresholds
 from app.rules.definitions import (
+    AccountCreatedTodayRule,
     EmptyNameRule,
     LongNameRule,
+    NoLinkedPhoneRule,
     NoPhotoRule,
     NoUsernameRule,
     SuspiciousNameWordsRule,
@@ -27,6 +29,8 @@ RULE_CLASS_MAP = {
     TooManyEmojiRule.__name__: TooManyEmojiRule,
     EmptyNameRule.__name__: EmptyNameRule,
     UnknownLanguageRule.__name__: UnknownLanguageRule,
+    AccountCreatedTodayRule.__name__: AccountCreatedTodayRule,
+    NoLinkedPhoneRule.__name__: NoLinkedPhoneRule,
 }
 
 

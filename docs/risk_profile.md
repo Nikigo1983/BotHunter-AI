@@ -79,6 +79,8 @@ profile = RiskProfileBuilder().build(features, rule_result)
 | `crypto_keyword` | Подозрительные ключевые слова |
 | `empty_name` | Пустое имя |
 | `long_name` | Длинное имя |
+| `account_created_today` | Оценка: аккаунт создан сегодня |
+| `no_linked_phone` | Эвристика: номер телефона не привязан |
 
 ---
 

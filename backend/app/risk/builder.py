@@ -17,6 +17,8 @@ SIGNAL_LABELS: dict[str, str] = {
     "crypto_keyword": "обнаружены подозрительные ключевые слова",
     "empty_name": "пустое имя",
     "long_name": "слишком длинное имя",
+    "account_created_today": "аккаунт создан сегодня",
+    "no_linked_phone": "номер телефона не привязан",
 }
 
 RULE_MAIN_REASONS: dict[str, str] = {
@@ -29,6 +31,8 @@ RULE_MAIN_REASONS: dict[str, str] = {
     "NoUsernameRule": "Username отсутствует",
     "LongNameRule": "Имя слишком длинное",
     "UnknownLanguageRule": "Язык пользователя неизвестен",
+    "AccountCreatedTodayRule": "Аккаунт Telegram создан сегодня",
+    "NoLinkedPhoneRule": "К аккаунту не привязан номер телефона",
 }
 
 
@@ -93,6 +97,10 @@ class RiskProfileBuilder:
             signals.append("empty_name")
         if features.name.full_name_length > 30:
             signals.append("long_name")
+        if features.profile.account_created_today:
+            signals.append("account_created_today")
+        if features.profile.has_linked_phone is False:
+            signals.append("no_linked_phone")
 
         return signals
 

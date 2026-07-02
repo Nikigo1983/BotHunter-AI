@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 import pytest
 
 from app.features.extractor import FeatureExtractor, EXTRACTION_VERSION
@@ -47,6 +49,19 @@ def test_profile_features(extractor: FeatureExtractor) -> None:
     assert features.profile.has_username is False
     assert features.profile.is_premium is True
     assert features.profile.language is None
+    assert features.profile.account_created_today is False
+    assert features.profile.has_linked_phone is True
+
+
+def test_profile_account_age_features(extractor: FeatureExtractor) -> None:
+    reference_time = datetime(2026, 6, 30, 12, 0, tzinfo=UTC)
+    features = extractor.extract(
+        make_user(telegram_id=9_500_000_000, is_premium=False),
+        reference_time=reference_time,
+    )
+
+    assert features.profile.account_created_today is True
+    assert features.profile.has_linked_phone is False
 
 
 def test_username_digit_features(extractor: FeatureExtractor) -> None:

@@ -1,5 +1,9 @@
 from datetime import UTC, datetime
 
+from app.features.telegram_account import (
+    infer_has_linked_phone,
+    is_account_created_on_date,
+)
 from app.features.feature_set import (
     FeatureSet,
     NameFeatures,
@@ -25,11 +29,17 @@ from app.features.utils import (
 )
 from app.models.telegram_user import TelegramUser
 
-EXTRACTION_VERSION = "1.0.0"
+EXTRACTION_VERSION = "1.1.0"
 
 
 class FeatureExtractor:
-    def extract(self, user: TelegramUser) -> FeatureSet:
+    def extract(
+        self,
+        user: TelegramUser,
+        *,
+        reference_time: datetime | None = None,
+    ) -> FeatureSet:
+        now = reference_time or datetime.now(UTC)
         username = (user.username or "").strip()
         full_name = get_display_name(user.first_name, user.last_name)
         language = (user.language_code or "").strip() or None
@@ -41,6 +51,15 @@ class FeatureExtractor:
                 has_username=bool(username),
                 is_premium=user.is_premium,
                 language=language,
+                account_created_today=is_account_created_on_date(
+                    user.telegram_id,
+                    reference_time=now,
+                ),
+                has_linked_phone=infer_has_linked_phone(
+                    is_premium=user.is_premium,
+                    telegram_id=user.telegram_id,
+                    reference_time=now,
+                ),
             ),
             username=UsernameFeatures(
                 username_length=len(username),
@@ -62,6 +81,6 @@ class FeatureExtractor:
             ),
             system=SystemFeatures(
                 extraction_version=EXTRACTION_VERSION,
-                extracted_at=datetime.now(UTC),
+                extracted_at=now,
             ),
         )

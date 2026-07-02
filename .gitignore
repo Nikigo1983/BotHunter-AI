@@ -60,3 +60,9 @@ frontend/.next/
 # OS
 .DS_Store
 Thumbs.db
+
+# Database backups (keep README)
+backups/*.sql
+backups/*.dump
+backups/*.gz
+!backups/README.md

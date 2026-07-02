@@ -1,10 +1,13 @@
 import pytest
+from datetime import UTC, datetime
 
 from app.features import FeatureExtractor
 from app.models.telegram_user import TelegramUser
 from app.rules.definitions import (
+    AccountCreatedTodayRule,
     EmptyNameRule,
     LongNameRule,
+    NoLinkedPhoneRule,
     NoPhotoRule,
     NoUsernameRule,
     SuspiciousNameWordsRule,
@@ -14,6 +17,9 @@ from app.rules.definitions import (
     UsernameManyDigitsRule,
 )
 from app.rules.engine import RuleEngine
+
+REFERENCE_TIME = datetime(2026, 6, 30, 12, 0, tzinfo=UTC)
+NEW_ACCOUNT_ID = 9_500_000_000
 
 
 def make_user(**kwargs: object) -> TelegramUser:
@@ -31,7 +37,8 @@ def make_user(**kwargs: object) -> TelegramUser:
 
 
 def extract(**kwargs: object):
-    return FeatureExtractor().extract(make_user(**kwargs))
+    reference_time = kwargs.pop("reference_time", None)
+    return FeatureExtractor().extract(make_user(**kwargs), reference_time=reference_time)
 
 
 @pytest.mark.parametrize(
@@ -60,6 +67,40 @@ def extract(**kwargs: object):
         (EmptyNameRule, {"first_name": "Ivan"}, 0),
         (UnknownLanguageRule, {"language_code": None}, 5),
         (UnknownLanguageRule, {"language_code": "en"}, 0),
+        (
+            AccountCreatedTodayRule,
+            {
+                "telegram_id": NEW_ACCOUNT_ID,
+                "reference_time": REFERENCE_TIME,
+            },
+            35,
+        ),
+        (
+            AccountCreatedTodayRule,
+            {
+                "telegram_id": 10_001,
+                "reference_time": REFERENCE_TIME,
+            },
+            0,
+        ),
+        (
+            NoLinkedPhoneRule,
+            {
+                "telegram_id": NEW_ACCOUNT_ID,
+                "is_premium": False,
+                "reference_time": REFERENCE_TIME,
+            },
+            15,
+        ),
+        (
+            NoLinkedPhoneRule,
+            {
+                "telegram_id": NEW_ACCOUNT_ID,
+                "is_premium": True,
+                "reference_time": REFERENCE_TIME,
+            },
+            0,
+        ),
     ],
 )
 def test_individual_rules(rule_cls, user_kwargs, expected_score) -> None:

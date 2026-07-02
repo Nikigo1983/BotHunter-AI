@@ -1,3 +1,7 @@
 decision_thresholds:
   approve_below: 30
   reject_from: 70
+
+telegram_account_heuristics:
+  no_phone_inference_max_age_days: 45
+  linked_phone_assumed_min_age_days: 120

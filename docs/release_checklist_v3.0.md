@@ -115,6 +115,21 @@ Before go-live:
 - [x] `/admin/release-check`
 - [x] Security tests
 - [x] Documentation updated
+- [x] Rule Engine: `AccountCreatedTodayRule`, `NoLinkedPhoneRule`
+- [x] `telegram_account_heuristics` in `decision_thresholds.yaml`
+- [x] Release notes: [release_notes_v3.0.0.md](release_notes_v3.0.0.md)
+- [x] DB backup scripts: `scripts/backup_database.ps1`, `scripts/backup_database.sh`
+
+---
+
+## 10. Rule Engine — Account Signals (v3.0.0)
+
+| Rule | Default | Effect |
+|------|--------:|--------|
+| `AccountCreatedTodayRule` | +35 | Single rule → Manual Review |
+| `NoLinkedPhoneRule` | +15 | Stacks with account-age signals |
+
+Heuristics (YAML): `no_phone_inference_max_age_days: 45`, `linked_phone_assumed_min_age_days: 120`.
 
 ---
 
@@ -133,3 +148,4 @@ After v3.0.0: **feedback-driven development**.
 - [Multi-Tenant Architecture](multi_tenant.md)
 - [Production Readiness](production_readiness.md)
 - [Changelog](changelog.md)
+- [Release Notes v3.0.0](release_notes_v3.0.0.md)

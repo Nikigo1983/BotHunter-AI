@@ -46,6 +46,8 @@ features = extractor.extract(telegram_user)
 | `has_username` | bool | Username задан |
 | `is_premium` | bool | Telegram Premium |
 | `language` | str \| None | Код языка |
+| `account_created_today` | bool | Оценка: аккаунт Telegram создан сегодня (User ID) |
+| `has_linked_phone` | bool \| None | Эвристика привязки телефона (`None` = неизвестно) |
 
 ### Username
 
@@ -88,7 +90,9 @@ features = extractor.extract(telegram_user)
     "has_photo": false,
     "has_username": true,
     "is_premium": false,
-    "language": "ru"
+    "language": "ru",
+    "account_created_today": false,
+    "has_linked_phone": true
   },
   "username": {
     "username_length": 14,
@@ -109,7 +113,7 @@ features = extractor.extract(telegram_user)
     "contains_suspicious_words": false
   },
   "system": {
-    "extraction_version": "1.0.0",
+    "extraction_version": "1.1.0",
     "extracted_at": "2026-06-29T14:50:00+00:00"
   }
 }
@@ -124,8 +128,19 @@ backend/app/features/
 ├── __init__.py
 ├── feature_set.py
 ├── extractor.py
+├── telegram_account.py
 └── utils.py
 ```
+
+### Telegram account estimation
+
+`telegram_account.py`:
+
+- `estimate_telegram_registration_date(telegram_id)` — дата по User ID
+- `is_account_created_on_date(...)` — совпадает ли с сегодня
+- `infer_has_linked_phone(...)` — эвристика телефона
+
+Пороги — `backend/config/decision_thresholds.yaml` → `telegram_account_heuristics`.
 
 ---
 

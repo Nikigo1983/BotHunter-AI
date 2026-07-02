@@ -4,8 +4,10 @@ from typing import Any
 from app.features.feature_set import FeatureSet
 from app.rules.base import TOO_MANY_EMOJI_THRESHOLD
 from app.rules.definitions import (
+    AccountCreatedTodayRule,
     EmptyNameRule,
     LongNameRule,
+    NoLinkedPhoneRule,
     NoPhotoRule,
     NoUsernameRule,
     SuspiciousNameWordsRule,
@@ -36,6 +38,8 @@ RULE_CONDITIONS: dict[str, str] = {
     "TooManyEmojiRule": f"name.emoji_count >= {TOO_MANY_EMOJI_THRESHOLD}",
     "EmptyNameRule": "name.full_name_length == 0",
     "UnknownLanguageRule": "profile.language is null",
+    "AccountCreatedTodayRule": "profile.account_created_today == true",
+    "NoLinkedPhoneRule": "profile.has_linked_phone == false",
 }
 
 
