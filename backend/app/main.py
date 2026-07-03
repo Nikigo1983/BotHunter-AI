@@ -30,13 +30,29 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     setup_logging()
     settings = get_settings()
     logger.info("Starting %s in %s mode", settings.app_name, settings.app_env)
-    async with async_session_factory() as session:
-        auth_service = DashboardAuthService(session)
-        await auth_service.ensure_default_owner()
-        await TenantBootstrapService(session).ensure_default_tenant()
-        await session.commit()
-        await refresh_runtime_snapshot(session)
-        await session.commit()
+    logger.info(
+        "PostgreSQL target: %s:%s/%s (ssl=%s)",
+        settings.postgres_host,
+        settings.postgres_port,
+        settings.postgres_db,
+        settings.requires_postgres_ssl,
+    )
+    try:
+        async with async_session_factory() as session:
+            auth_service = DashboardAuthService(session)
+            await auth_service.ensure_default_owner()
+            await TenantBootstrapService(session).ensure_default_tenant()
+            await session.commit()
+            await refresh_runtime_snapshot(session)
+            await session.commit()
+    except Exception:
+        logger.exception(
+            "Application startup failed while initializing database at %s:%s/%s",
+            settings.postgres_host,
+            settings.postgres_port,
+            settings.postgres_db,
+        )
+        raise
     yield
     await engine.dispose()
     logger.info("Application shutdown complete")

@@ -10,10 +10,15 @@ from app.config import get_settings
 
 settings = get_settings()
 
+connect_args: dict[str, object] = {"command_timeout": 30}
+if settings.requires_postgres_ssl:
+    connect_args["ssl"] = True
+
 engine = create_async_engine(
     settings.database_url,
     echo=settings.app_debug,
     pool_pre_ping=True,
+    connect_args=connect_args,
 )
 
 async_session_factory = async_sessionmaker(

@@ -3,8 +3,14 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-from pydantic import computed_field, model_validator
+from pydantic import AliasChoices, Field, computed_field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from app.config.database_url import (
+    host_requires_postgres_ssl,
+    normalize_async_database_url,
+    parse_database_url,
+)
 
 BACKEND_DIR = Path(__file__).resolve().parents[2]
 PROJECT_ROOT = BACKEND_DIR.parent
@@ -32,6 +38,11 @@ class Settings(BaseSettings):
     postgres_user: str = "bothunter"
     postgres_password: str = "bothunter"
     postgres_db: str = "bothunter"
+    postgres_ssl: bool = False
+    database_url_override: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("DATABASE_URL", "database_url"),
+    )
 
     redis_host: str = "localhost"
     redis_port: int = 6379
@@ -85,9 +96,36 @@ class Settings(BaseSettings):
             data["app_port"] = port
         return data
 
+    @model_validator(mode="before")
+    @classmethod
+    def resolve_database_from_url(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+
+        raw_url = data.get("database_url_override") or os.getenv("DATABASE_URL")
+        if not raw_url:
+            return data
+
+        data["database_url_override"] = raw_url
+        try:
+            parsed = parse_database_url(raw_url)
+        except ValueError:
+            return data
+
+        data.update(parsed)
+        return data
+
+    @property
+    def requires_postgres_ssl(self) -> bool:
+        if self.postgres_ssl:
+            return True
+        return host_requires_postgres_ssl(self.postgres_host)
+
     @computed_field
     @property
     def database_url(self) -> str:
+        if self.database_url_override:
+            return normalize_async_database_url(self.database_url_override)
         return (
             f"postgresql+asyncpg://{self.postgres_user}:{self.postgres_password}"
             f"@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
