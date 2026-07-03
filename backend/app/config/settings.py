@@ -47,6 +47,10 @@ class Settings(BaseSettings):
     redis_host: str = "localhost"
     redis_port: int = 6379
     redis_db: int = 0
+    redis_url_override: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("REDIS_URL", "UPSTASH_REDIS_URL", "redis_url"),
+    )
 
     bot_token: str = ""
 
@@ -142,6 +146,8 @@ class Settings(BaseSettings):
     @computed_field
     @property
     def redis_url(self) -> str:
+        if self.redis_url_override:
+            return self.redis_url_override.strip()
         return f"redis://{self.redis_host}:{self.redis_port}/{self.redis_db}"
 
 
