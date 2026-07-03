@@ -68,12 +68,21 @@ class Settings(BaseSettings):
     def resolve_app_port(cls, data: Any) -> Any:
         if not isinstance(data, dict):
             return data
-        app_port = data.get("app_port")
-        if app_port not in (None, ""):
-            return data
-        railway_port = os.getenv("PORT", "").strip()
-        if railway_port.isdigit():
-            data["app_port"] = int(railway_port)
+
+        def parse_port(value: Any) -> int | None:
+            if value is None or value == "":
+                return None
+            try:
+                port = int(value)
+            except (TypeError, ValueError):
+                return None
+            return port if 0 < port < 65536 else None
+
+        port = parse_port(data.get("app_port"))
+        if port is None:
+            port = parse_port(os.getenv("PORT"))
+        if port is not None:
+            data["app_port"] = port
         return data
 
     @computed_field
