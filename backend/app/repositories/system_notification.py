@@ -40,3 +40,13 @@ class SystemNotificationRepository(BaseRepository[SystemNotification]):
         )
         await self._session.execute(stmt)
         await self._session.flush()
+
+    async def mark_read_by_source(self, source: str) -> None:
+        stmt = (
+            update(SystemNotification)
+            .values(is_read=True)
+            .where(SystemNotification.is_read.is_(False))
+            .where(SystemNotification.source == source)
+        )
+        await self._session.execute(stmt)
+        await self._session.flush()

@@ -133,9 +133,20 @@ class SystemMonitorService:
 
     async def _check_telegram(self) -> ServiceStatus:
         now = datetime.now(UTC)
-        token = self._settings.bot_token.strip()
+        from app.repositories.deps import get_organization_repository
+        from app.services.telegram_runtime import TelegramRuntimeService
+
+        default_org = await get_organization_repository(self._session).get_by_slug("default")
+        token = await TelegramRuntimeService(self._session).resolve_token(
+            default_org.id if default_org else None
+        )
         if not token:
-            return ServiceStatus(name="Telegram API", status="error", detail="BOT_TOKEN not configured", checked_at=now)
+            return ServiceStatus(
+                name="Telegram API",
+                status="error",
+                detail="BOT_TOKEN not configured",
+                checked_at=now,
+            )
         try:
             import httpx
 
@@ -370,12 +381,16 @@ class SystemMonitorService:
         usage = await self.get_usage_limits()
 
         for item in statuses:
+            source = item.name.lower().replace(" ", "_")
+            if item.status == "ok" and item.name in {"Telegram API", "OpenRouter"}:
+                await notifier.resolve_alerts_for_source(source)
+                continue
             if item.status == "error" and item.name in {"Telegram API", "OpenRouter"}:
                 await notifier.ensure_alert(
                     level=NotificationLevel.CRITICAL.value,
                     title=f"{item.name} unavailable",
                     message=item.detail or "Service check failed",
-                    source=item.name.lower().replace(" ", "_"),
+                    source=source,
                 )
 
         if usage.remaining_budget <= 0:

@@ -34,6 +34,9 @@ class NotificationService:
     async def mark_all_read(self) -> None:
         await self._repo.mark_all_read()
 
+    async def resolve_alerts_for_source(self, source: str) -> None:
+        await self._repo.mark_read_by_source(source)
+
     async def ensure_alert(
         self,
         *,

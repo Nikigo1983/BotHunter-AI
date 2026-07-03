@@ -14,6 +14,7 @@ from app.services.dashboard_auth import DashboardAuthContext
 from app.services.onboarding_wizard import OnboardingWizardService
 from app.services.organization_management import OrganizationManagementService, WorkspaceManagementService
 from app.services.release_validation import ReleaseValidationService
+from app.services.system_monitor import SystemMonitorService
 from app.tenant.middleware import resolve_tenant_context
 
 saas_router = APIRouter(
@@ -266,6 +267,9 @@ async def release_check_page(
     redis=Depends(get_redis),
 ) -> HTMLResponse:
     tenant = await _tenant(request, auth, session)
+    monitor = SystemMonitorService(session)
+    await monitor.sync_health_alerts(redis)
+    await session.commit()
     report = await ReleaseValidationService(session, tenant).run_checks(redis)
     return ADMIN_TEMPLATES.TemplateResponse(
         request,
