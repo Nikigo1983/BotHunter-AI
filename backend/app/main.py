@@ -29,7 +29,13 @@ logger = get_logger(__name__)
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     setup_logging()
     settings = get_settings()
-    logger.info("Starting %s in %s mode", settings.app_name, settings.app_env)
+    logger.info(
+        "Starting %s in %s mode on %s:%s",
+        settings.app_name,
+        settings.app_env,
+        settings.app_host,
+        settings.app_port,
+    )
     logger.info(
         "PostgreSQL target: %s:%s/%s (ssl=%s)",
         settings.postgres_host,

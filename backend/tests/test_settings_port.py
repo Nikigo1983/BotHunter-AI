@@ -1,6 +1,14 @@
 from app.config.settings import Settings, get_settings
 
 
+def test_resolve_app_port_prefers_railway_port_env(monkeypatch) -> None:
+    monkeypatch.setenv("APP_PORT", "8000")
+    monkeypatch.setenv("PORT", "8080")
+    get_settings.cache_clear()
+    settings = get_settings()
+    assert settings.app_port == 8080
+
+
 def test_resolve_app_port_falls_back_to_port_env(monkeypatch) -> None:
     monkeypatch.setenv("APP_PORT", "${{PORT}}")
     monkeypatch.setenv("PORT", "8765")

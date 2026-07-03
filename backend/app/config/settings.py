@@ -89,9 +89,9 @@ class Settings(BaseSettings):
                 return None
             return port if 0 < port < 65536 else None
 
-        port = parse_port(data.get("app_port"))
+        port = parse_port(os.getenv("PORT"))
         if port is None:
-            port = parse_port(os.getenv("PORT"))
+            port = parse_port(data.get("app_port"))
         if port is not None:
             data["app_port"] = port
         return data
