@@ -1,7 +1,9 @@
+import os
 from functools import lru_cache
 from pathlib import Path
+from typing import Any
 
-from pydantic import computed_field
+from pydantic import computed_field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BACKEND_DIR = Path(__file__).resolve().parents[2]
@@ -60,6 +62,19 @@ class Settings(BaseSettings):
     dashboard_admin_password: str = "admin"
     dashboard_https_enabled: bool = False
     monthly_budget_usd: float = 100.0
+
+    @model_validator(mode="before")
+    @classmethod
+    def resolve_app_port(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        app_port = data.get("app_port")
+        if app_port not in (None, ""):
+            return data
+        railway_port = os.getenv("PORT", "").strip()
+        if railway_port.isdigit():
+            data["app_port"] = int(railway_port)
+        return data
 
     @computed_field
     @property

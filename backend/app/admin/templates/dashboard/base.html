@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% include "dashboard/partials/pwa_head.html" %}
     {% if csrf_token %}<meta name="csrf-token" content="{{ csrf_token }}">{% endif %}
     <title>{% block title %}BotHunter Admin{% endblock %}</title>
     {% if request.state.organization is defined and request.state.organization and request.state.organization.favicon_url %}
@@ -108,5 +109,6 @@ document.body.addEventListener('htmx:configRequest', function (event) {
     if (token) event.detail.headers['X-CSRF-Token'] = token.content;
 });
 </script>
+{% include "dashboard/partials/pwa_register.html" %}
 </body>
 </html>

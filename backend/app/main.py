@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.admin.auth_router import auth_router
+from app.admin.pwa_router import mount_pwa_static, pwa_router
 from app.admin.invite_router import invite_router
 from app.admin.organization_router import organization_router
 from app.admin.saas_router import saas_router
@@ -62,6 +63,9 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    app.include_router(pwa_router)
+    mount_pwa_static(app)
 
     app.include_router(api_v1_router, prefix=settings.api_v1_prefix)
     app.include_router(auth_router)

@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.admin.auth.deps import attach_dashboard_auth, require_dashboard_auth, validate_post_csrf
 from app.admin.auth.permissions import PERMISSION_MANAGE_USERS, PERMISSION_VIEW_SECRETS, has_permission
 from app.admin.router import ADMIN_TEMPLATES
+from app.admin.request_utils import public_base_url
 from app.config import get_settings
 from app.database.session import get_db_session
 from app.services.dashboard_auth import DashboardAuthContext
@@ -68,7 +69,7 @@ async def organization_members_invite(
 ) -> HTMLResponse:
     if not has_permission(auth.user.role, PERMISSION_MANAGE_USERS):
         raise HTTPException(status_code=403, detail="Insufficient permissions")
-    base_url = str(request.base_url).rstrip("/")
+    base_url = public_base_url(request)
     error = None
     invite = None
     try:
