@@ -3,6 +3,7 @@ from collections.abc import AsyncIterator
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 
 from app.admin.auth_router import auth_router
 from app.admin.pwa_router import mount_pwa_static, pwa_router
@@ -100,13 +101,8 @@ def create_app() -> FastAPI:
     app.include_router(system_router)
 
     @app.get("/", include_in_schema=False)
-    async def root() -> dict[str, str]:
-        return {
-            "message": f"Welcome to {settings.app_name}",
-            "docs": "/docs",
-            "health": f"{settings.api_v1_prefix}/health",
-            "admin": "/admin",
-        }
+    async def root() -> RedirectResponse:
+        return RedirectResponse(url="/admin/login", status_code=302)
 
     return app
 
