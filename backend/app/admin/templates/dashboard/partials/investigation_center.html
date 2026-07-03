@@ -112,17 +112,21 @@
                 <div class="card h-100">
                     <div class="card-header fw-semibold">AI Response Viewer</div>
                     <div class="card-body">
-                        <div class="explanation-section-title">Parsed Response</div>
                         {% if investigation.ai_response.parsed_response %}
-                        <pre class="feature-json small">{{ investigation.ai_response.parsed_response | tojson(indent=2) }}</pre>
+                        <details class="investigation-json-details mb-3">
+                            <summary class="explanation-section-title mb-0">Parsed Response (JSON)</summary>
+                            <pre class="feature-json small mt-2 mb-0">{{ investigation.ai_response.parsed_response | tojson(indent=2) }}</pre>
+                        </details>
                         {% else %}
                         <div class="text-muted small mb-3">Parsed response отсутствует</div>
                         {% endif %}
-                        <div class="explanation-section-title mt-3">Raw JSON</div>
                         {% if investigation.ai_response.raw_json %}
-                        <pre class="feature-json small">{{ investigation.ai_response.raw_json }}</pre>
+                        <details class="investigation-json-details">
+                            <summary class="explanation-section-title mb-0 mt-3">Raw JSON</summary>
+                            <pre class="feature-json small mt-2 mb-0">{{ investigation.ai_response.raw_json }}</pre>
+                        </details>
                         {% else %}
-                        <div class="text-muted small">Raw JSON отсутствует</div>
+                        <div class="text-muted small mt-3">Raw JSON отсутствует</div>
                         {% endif %}
                     </div>
                 </div>
