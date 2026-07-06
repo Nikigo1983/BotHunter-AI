@@ -3,13 +3,35 @@ from __future__ import annotations
 from urllib.parse import unquote, urlparse
 
 
-def normalize_async_database_url(url: str) -> str:
+def normalize_async_database_url(url: str, *, use_pooler: bool = False) -> str:
     normalized = url.strip()
     if normalized.startswith("postgres://"):
-        return "postgresql+asyncpg://" + normalized[len("postgres://") :]
-    if normalized.startswith("postgresql://") and "+asyncpg" not in normalized:
-        return "postgresql+asyncpg://" + normalized[len("postgresql://") :]
-    return normalized
+        normalized = "postgresql+asyncpg://" + normalized[len("postgres://") :]
+    elif normalized.startswith("postgresql://") and "+asyncpg" not in normalized:
+        normalized = "postgresql+asyncpg://" + normalized[len("postgresql://") :]
+
+    if not use_pooler:
+        return normalized
+
+    parsed = urlparse(normalized.replace("postgresql+asyncpg://", "postgresql://", 1))
+    if not parsed.hostname:
+        return normalized
+
+    pooler_host = apply_neon_pooler_host(parsed.hostname)
+    if pooler_host == parsed.hostname:
+        return normalized
+
+    auth = ""
+    if parsed.username:
+        auth = parsed.username
+        if parsed.password:
+            auth = f"{auth}:{parsed.password}"
+        auth = f"{auth}@"
+
+    port = f":{parsed.port}" if parsed.port else ""
+    path = parsed.path or ""
+    query = f"?{parsed.query}" if parsed.query else ""
+    return f"postgresql+asyncpg://{auth}{pooler_host}{port}{path}{query}"
 
 
 def host_requires_postgres_ssl(host: str) -> bool:
@@ -17,8 +39,17 @@ def host_requires_postgres_ssl(host: str) -> bool:
     return "neon.tech" in lowered
 
 
-def parse_database_url(url: str) -> dict[str, str | int]:
-    normalized = normalize_async_database_url(url)
+def apply_neon_pooler_host(host: str) -> str:
+    if "-pooler." in host or not host.endswith(".neon.tech"):
+        return host
+    first_dot = host.find(".")
+    if first_dot == -1:
+        return host
+    return f"{host[:first_dot]}-pooler{host[first_dot:]}"
+
+
+def parse_database_url(url: str, *, use_pooler: bool = False) -> dict[str, str | int]:
+    normalized = normalize_async_database_url(url, use_pooler=use_pooler)
     parsed = urlparse(normalized.replace("postgresql+asyncpg://", "postgresql://", 1))
     if not parsed.hostname:
         raise ValueError("DATABASE_URL must include a hostname")

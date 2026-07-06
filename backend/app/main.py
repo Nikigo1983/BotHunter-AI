@@ -4,6 +4,7 @@ from collections.abc import AsyncIterator
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
+from redis.asyncio import Redis
 
 from app.admin.auth_router import auth_router
 from app.admin.pwa_router import mount_pwa_static, pwa_router
@@ -38,12 +39,25 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         settings.app_port,
     )
     logger.info(
-        "PostgreSQL target: %s:%s/%s (ssl=%s)",
+        "PostgreSQL target: %s:%s/%s (ssl=%s, pooler=%s, pool_size=%s)",
         settings.postgres_host,
         settings.postgres_port,
         settings.postgres_db,
         settings.requires_postgres_ssl,
+        settings.database_use_pooler,
+        settings.database_pool_size,
     )
+    app.state.redis = None
+    try:
+        app.state.redis = Redis.from_url(
+            settings.redis_url,
+            encoding="utf-8",
+            decode_responses=True,
+        )
+        await app.state.redis.ping()
+    except Exception:
+        logger.warning("Redis unavailable; dashboard workspace cache disabled")
+        app.state.redis = None
     try:
         async with async_session_factory() as session:
             auth_service = DashboardAuthService(session)
@@ -61,6 +75,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         )
         raise
     yield
+    if app.state.redis is not None:
+        await app.state.redis.aclose()
     await engine.dispose()
     logger.info("Application shutdown complete")
 

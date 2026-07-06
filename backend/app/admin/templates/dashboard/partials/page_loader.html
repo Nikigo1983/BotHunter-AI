@@ -1,0 +1,98 @@
+<style>
+#page-loader {
+    position: fixed;
+    inset: 0 0 auto 0;
+    height: 3px;
+    z-index: 2000;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+#page-loader.active {
+    opacity: 1;
+}
+#page-loader-bar {
+    width: 35%;
+    height: 100%;
+    background: linear-gradient(90deg, #0d6efd, #6610f2);
+    animation: page-loader-slide 1s ease-in-out infinite;
+}
+#page-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1999;
+    background: rgba(248, 249, 250, 0.35);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+}
+#page-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+@keyframes page-loader-slide {
+    0% { transform: translateX(-120%); }
+    100% { transform: translateX(320%); }
+}
+body.page-loading {
+    cursor: progress;
+}
+body.page-loading .navbar .nav-link,
+body.page-loading .navbar .btn {
+    pointer-events: none;
+}
+</style>
+<div id="page-loader" aria-hidden="true"><div id="page-loader-bar"></div></div>
+<div id="page-overlay" aria-hidden="true"></div>
+<script>
+(function () {
+    const loader = document.getElementById("page-loader");
+    const overlay = document.getElementById("page-overlay");
+    if (!loader || !overlay) return;
+
+    let loading = false;
+
+    function showLoader() {
+        if (loading) return;
+        loading = true;
+        loader.classList.add("active");
+        overlay.classList.add("active");
+        document.body.classList.add("page-loading");
+    }
+
+    function hideLoader() {
+        loading = false;
+        loader.classList.remove("active");
+        overlay.classList.remove("active");
+        document.body.classList.remove("page-loading");
+    }
+
+    function shouldHandleLink(link) {
+        if (!link || link.target === "_blank" || link.hasAttribute("download")) return false;
+        const href = link.getAttribute("href");
+        if (!href || href.startsWith("#") || href.startsWith("javascript:")) return false;
+        if (href.startsWith("http") && !href.startsWith(window.location.origin)) return false;
+        return href.startsWith("/admin") || href.startsWith(window.location.origin + "/admin");
+    }
+
+    document.addEventListener("click", function (event) {
+        const link = event.target.closest("a");
+        if (!shouldHandleLink(link)) return;
+        showLoader();
+    }, true);
+
+    document.addEventListener("submit", function (event) {
+        const form = event.target;
+        if (!(form instanceof HTMLFormElement)) return;
+        if (form.dataset.noLoader === "true") return;
+        showLoader();
+    }, true);
+
+    document.addEventListener("htmx:beforeRequest", showLoader);
+    document.addEventListener("htmx:afterRequest", hideLoader);
+    document.addEventListener("htmx:responseError", hideLoader);
+
+    window.addEventListener("pageshow", hideLoader);
+    window.addEventListener("load", hideLoader);
+})();
+</script>

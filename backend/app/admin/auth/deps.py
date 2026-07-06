@@ -1,18 +1,27 @@
-from fastapi import Depends, HTTPException, Request, status
+import asyncio
+
+from fastapi import Depends, Request
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.admin.auth.permissions import role_label
 from app.database.session import get_db_session
+from app.repositories.deps import get_organization_repository
 from app.services.dashboard_auth import (
     DashboardAuthContext,
     DashboardAuthService,
     get_session_token_from_request,
 )
+from app.services.dashboard_workspace_cache import DashboardWorkspaceCache
 from app.services.notification_service import NotificationService
 from app.tenant.middleware import resolve_tenant_context
-from app.tenant.resolver import TenantResolver
+from fastapi import HTTPException, status
 
 AUTH_LOGIN_URL = "/admin/login"
+
+
+def get_request_redis(request: Request) -> Redis | None:
+    return getattr(request.app.state, "redis", None)
 
 
 async def get_auth_service(
@@ -66,12 +75,16 @@ async def attach_dashboard_auth(
     auth: DashboardAuthContext = Depends(require_dashboard_auth),
     session: AsyncSession = Depends(get_db_session),
 ) -> DashboardAuthContext:
-    notifications = await NotificationService(session).get_active_alerts(limit=5)
-    tenant = await resolve_tenant_context(request, auth, session)
-    workspaces = await TenantResolver(session).list_accessible_workspaces(auth.user.id)
-    from app.repositories.deps import get_organization_repository
+    redis = get_request_redis(request)
+    notifications, tenant, workspaces = await asyncio.gather(
+        NotificationService(session).get_active_alerts(limit=5),
+        resolve_tenant_context(request, auth, session),
+        DashboardWorkspaceCache.get_workspaces(session, auth.user.id, redis=redis),
+    )
+    organization = getattr(request.state, "organization", None)
+    if organization is None:
+        organization = await get_organization_repository(session).get_by_id(tenant.organization_id)
 
-    organization = await get_organization_repository(session).get_by_id(tenant.organization_id)
     request.state.dashboard_auth = auth
     request.state.notifications = notifications
     request.state.current_user = auth.user
@@ -101,6 +114,7 @@ async def get_template_context(
     auth: DashboardAuthContext = Depends(require_dashboard_auth),
     session: AsyncSession = Depends(get_db_session),
 ) -> dict:
+    redis = get_request_redis(request)
     notifications = await NotificationService(session).get_active_alerts(limit=5)
     return {
         "request": request,

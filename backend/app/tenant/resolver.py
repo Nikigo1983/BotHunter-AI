@@ -4,6 +4,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.enums import DashboardRole, OrganizationPlan
+from app.models.organization import Organization
 from app.repositories.deps import (
     get_organization_member_repository,
     get_organization_repository,
@@ -28,7 +29,7 @@ class TenantResolver:
         user,
         organization_id: uuid.UUID | None,
         workspace_id: uuid.UUID | None,
-    ) -> TenantContext:
+    ) -> tuple[TenantContext, Organization]:
         orgs = await self._org_repo.list_for_user(user_id)
         if not orgs:
             raise HTTPException(
@@ -80,7 +81,7 @@ class TenantResolver:
 
         user.role = effective_role
         plan = OrganizationPlan(organization.plan)
-        return TenantContext(
+        tenant = TenantContext(
             organization_id=organization.id,
             workspace_id=workspace.id,
             user_id=user_id,
@@ -89,6 +90,7 @@ class TenantResolver:
             plan=plan,
             user=user,
         )
+        return tenant, organization
 
     async def list_accessible_workspaces(self, user_id: uuid.UUID) -> list[tuple]:
         orgs = await self._org_repo.list_for_user(user_id)

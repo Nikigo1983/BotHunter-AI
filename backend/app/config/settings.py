@@ -7,6 +7,7 @@ from pydantic import AliasChoices, Field, computed_field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from app.config.database_url import (
+    apply_neon_pooler_host,
     host_requires_postgres_ssl,
     normalize_async_database_url,
     parse_database_url,
@@ -43,6 +44,10 @@ class Settings(BaseSettings):
         default=None,
         validation_alias=AliasChoices("DATABASE_URL", "database_url"),
     )
+    database_use_pooler: bool = False
+    database_pool_size: int = 5
+    database_max_overflow: int = 10
+    database_pool_recycle: int = 300
 
     redis_host: str = "localhost"
     redis_port: int = 6379
@@ -110,13 +115,21 @@ class Settings(BaseSettings):
         if not raw_url:
             return data
 
+        use_pooler = str(data.get("database_use_pooler", os.getenv("DATABASE_USE_POOLER", ""))).lower() in {
+            "1",
+            "true",
+            "yes",
+        }
+        data["database_use_pooler"] = use_pooler
         data["database_url_override"] = raw_url
         try:
-            parsed = parse_database_url(raw_url)
+            parsed = parse_database_url(raw_url, use_pooler=use_pooler)
         except ValueError:
             return data
 
         data.update(parsed)
+        if host_requires_postgres_ssl(parsed["postgres_host"]):
+            data["postgres_ssl"] = True
         return data
 
     @property
@@ -129,18 +142,27 @@ class Settings(BaseSettings):
     @property
     def database_url(self) -> str:
         if self.database_url_override:
-            return normalize_async_database_url(self.database_url_override)
+            return normalize_async_database_url(
+                self.database_url_override,
+                use_pooler=self.database_use_pooler,
+            )
+        host = self.postgres_host
+        if self.database_use_pooler:
+            host = apply_neon_pooler_host(host)
         return (
             f"postgresql+asyncpg://{self.postgres_user}:{self.postgres_password}"
-            f"@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
+            f"@{host}:{self.postgres_port}/{self.postgres_db}"
         )
 
     @computed_field
     @property
     def database_url_sync(self) -> str:
+        host = self.postgres_host
+        if self.database_use_pooler:
+            host = apply_neon_pooler_host(host)
         return (
             f"postgresql://{self.postgres_user}:{self.postgres_password}"
-            f"@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
+            f"@{host}:{self.postgres_port}/{self.postgres_db}"
         )
 
     @computed_field

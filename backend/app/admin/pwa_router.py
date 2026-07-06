@@ -5,6 +5,7 @@ from fastapi.responses import FileResponse
 from starlette.staticfiles import StaticFiles
 
 PWA_DIR = Path(__file__).resolve().parent / "static" / "pwa"
+VENDOR_DIR = Path(__file__).resolve().parent / "static" / "vendor"
 
 pwa_router = APIRouter(tags=["pwa"])
 
@@ -30,3 +31,5 @@ def mount_pwa_static(app) -> None:
     icons_dir = PWA_DIR / "icons"
     if icons_dir.is_dir():
         app.mount("/pwa/icons", StaticFiles(directory=icons_dir), name="pwa-icons")
+    if VENDOR_DIR.is_dir():
+        app.mount("/admin/static/vendor", StaticFiles(directory=VENDOR_DIR), name="admin-vendor")

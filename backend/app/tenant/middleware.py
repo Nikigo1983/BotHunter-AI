@@ -4,6 +4,7 @@ from fastapi import HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.dashboard_session import DashboardSession
+from app.models.organization import Organization
 from app.repositories.deps import get_dashboard_session_repository
 from app.services.dashboard_auth import DashboardAuthContext
 from app.tenant.context import TenantContext
@@ -20,7 +21,7 @@ async def resolve_tenant_context(
     header_workspace = request.headers.get("X-Workspace-Id")
     organization_id = uuid.UUID(header_org) if header_org else auth.session.active_organization_id
     workspace_id = uuid.UUID(header_workspace) if header_workspace else auth.session.active_workspace_id
-    tenant = await resolver.resolve(
+    tenant, organization = await resolver.resolve(
         user_id=auth.user.id,
         user=auth.user,
         organization_id=organization_id,
@@ -36,14 +37,5 @@ async def resolve_tenant_context(
         db_session.active_workspace_id = tenant.workspace_id
         await session_repo.update(db_session)
     request.state.tenant = tenant
-    return tenant
-
-
-async def require_tenant_from_request(request: Request) -> TenantContext:
-    tenant = getattr(request.state, "tenant", None)
-    if tenant is None:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Tenant context missing",
-        )
+    request.state.organization = organization
     return tenant
