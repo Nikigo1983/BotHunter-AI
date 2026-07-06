@@ -248,3 +248,42 @@ async def test_channels_web_pages(session: AsyncSession, admin_client: AsyncClie
         follow_redirects=False,
     )
     assert enable.status_code == 303
+
+
+@pytest.mark.asyncio
+async def test_admin_channel_service_delete(session: AsyncSession) -> None:
+    channel = await seed_channel(session, suffix="svc-delete")
+    service = AdminChannelService(session)
+    channel_id = channel.id
+
+    title = await service.delete_channel(channel_id)
+    assert title == channel.title
+
+    assert await service.get_channel_detail(channel_id) is None
+    items = await service.list_channels()
+    assert not any(item.id == channel_id for item in items)
+
+
+@pytest.mark.asyncio
+async def test_channels_delete_endpoints(session: AsyncSession, admin_client: AsyncClient, admin_csrf: str) -> None:
+    channel = await seed_channel(session, suffix="api-delete")
+    channel_id = channel.id
+
+    delete_response = await admin_client.delete(f"/api/v1/admin/channels/{channel_id}")
+    assert delete_response.status_code == 204
+
+    missing = await admin_client.get(f"/api/v1/admin/channels/{channel_id}")
+    assert missing.status_code == 404
+
+    channel_web = await seed_channel(session, suffix="web-delete")
+    delete_web = await admin_client.post(
+        f"/admin/channels/{channel_web.id}/delete",
+        data={"csrf_token": admin_csrf},
+        follow_redirects=False,
+    )
+    assert delete_web.status_code == 303
+    assert delete_web.headers["location"].startswith("/admin/channels?flash=success")
+
+    index = await admin_client.get("/admin/channels")
+    assert index.status_code == 200
+    assert channel_web.title not in index.text

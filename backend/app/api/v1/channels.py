@@ -156,3 +156,13 @@ async def update_channel(
     if detail is None:
         raise HTTPException(status_code=404, detail="Channel not found")
     return await get_channel(channel_id, days=days, service=service)
+
+
+@router.delete("/{channel_id}", status_code=204)
+async def delete_channel(
+    channel_id: uuid.UUID,
+    service: AdminChannelService = Depends(get_channel_service),
+) -> None:
+    title = await service.delete_channel(channel_id)
+    if title is None:
+        raise HTTPException(status_code=404, detail="Channel not found")

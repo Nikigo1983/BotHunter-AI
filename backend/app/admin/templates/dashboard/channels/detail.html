@@ -35,6 +35,11 @@
             <button type="submit" class="btn btn-outline-success btn-sm">Enable Channel</button>
         </form>
         {% endif %}
+        <form method="post" action="/admin/channels/{{ channel.id }}/delete"
+              onsubmit="return confirm('Удалить канал «{{ channel.title }}»? История заявок будет удалена безвозвратно.');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <button type="submit" class="btn btn-danger btn-sm">Delete Channel</button>
+        </form>
         <div class="btn-group btn-group-sm">
             <a href="/admin/channels/{{ channel.id }}?days=7" class="btn btn-outline-secondary {% if timeline_days == 7 %}active{% endif %}">7d</a>
             <a href="/admin/channels/{{ channel.id }}?days=30" class="btn btn-outline-secondary {% if timeline_days == 30 %}active{% endif %}">30d</a>

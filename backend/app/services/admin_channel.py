@@ -142,6 +142,14 @@ class AdminChannelService:
             ChannelSettingsUpdateRequest(is_active=is_active),
         )
 
+    async def delete_channel(self, channel_id: uuid.UUID) -> str | None:
+        channel = await self._channel_repo.get_by_id(channel_id)
+        if channel is None:
+            return None
+        title = channel.title
+        await self._channel_repo.delete(channel)
+        return title
+
     @staticmethod
     async def _fetch_member_count(channel: TelegramChannel, bot: Bot | None) -> int | None:
         if bot is None:

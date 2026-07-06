@@ -527,13 +527,19 @@ def _redirect_to_channel(channel_id: uuid.UUID, *, flash: str, msg: str) -> Redi
 @router.get("/channels", response_class=HTMLResponse)
 async def admin_channels_list(
     request: Request,
+    flash: str | None = Query(default=None),
+    msg: str | None = Query(default=None),
     service: AdminChannelService = Depends(get_channel_service),
 ) -> HTMLResponse:
     channels = await service.list_channels()
     return ADMIN_TEMPLATES.TemplateResponse(
         request,
         "dashboard/channels/index.html",
-        {"channels": channels},
+        {
+            "channels": channels,
+            "flash": flash,
+            "flash_message": msg,
+        },
     )
 
 
@@ -618,6 +624,21 @@ async def admin_channel_enable(
     if detail is None:
         raise HTTPException(status_code=404, detail="Channel not found")
     return _redirect_to_channel(parsed_id, flash="success", msg="Канал включён")
+
+
+@router.post("/channels/{channel_id}/delete", dependencies=[Depends(validate_post_csrf)])
+async def admin_channel_delete(
+    channel_id: str,
+    service: AdminChannelService = Depends(get_channel_service),
+) -> RedirectResponse:
+    parsed_id = _parse_channel_id(channel_id)
+    title = await service.delete_channel(parsed_id)
+    if title is None:
+        raise HTTPException(status_code=404, detail="Channel not found")
+    url = (
+        f"/admin/channels?flash=success&msg={quote(f'Канал «{title}» удалён')}"
+    )
+    return RedirectResponse(url, status_code=303)
 
 
 @router.get("/settings/ai", response_class=HTMLResponse)
