@@ -1,0 +1,57 @@
+<div class="modal fade" id="channelDeleteModal" tabindex="-1" aria-labelledby="channelDeleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title text-danger" id="channelDeleteModalLabel">Удалить канал?</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+            <div class="modal-body pt-2">
+                <p class="mb-3">
+                    Вы действительно хотите удалить канал
+                    <strong id="channelDeleteModalName">—</strong>?
+                </p>
+                <div class="alert alert-warning py-2 mb-3 small">
+                    <strong>Это действие необратимо.</strong> Будут удалены все заявки на вступление,
+                    результаты AI-анализа и история проверок. Бот перестанет обрабатывать новые заявки
+                    для этого чата.
+                </div>
+                <p class="text-muted small mb-0">
+                    Если нужно временно остановить проверку — используйте «Отключить канал» вместо удаления.
+                </p>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-danger" id="channelDeleteConfirmBtn">Да, удалить канал</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+(function () {
+    const modalEl = document.getElementById("channelDeleteModal");
+    const nameEl = document.getElementById("channelDeleteModalName");
+    const confirmBtn = document.getElementById("channelDeleteConfirmBtn");
+    if (!modalEl || !nameEl || !confirmBtn) return;
+
+    let pendingForm = null;
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+
+    document.querySelectorAll(".channel-delete-trigger").forEach(function (button) {
+        button.addEventListener("click", function () {
+            const formId = button.getAttribute("data-form-id");
+            const title = button.getAttribute("data-channel-title") || "этот канал";
+            pendingForm = formId ? document.getElementById(formId) : button.closest("form");
+            nameEl.textContent = "«" + title + "»";
+            modal.show();
+        });
+    });
+
+    confirmBtn.addEventListener("click", function () {
+        if (pendingForm) pendingForm.submit();
+    });
+
+    modalEl.addEventListener("hidden.bs.modal", function () {
+        pendingForm = null;
+    });
+})();
+</script>

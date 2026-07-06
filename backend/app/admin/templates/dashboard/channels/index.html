@@ -59,10 +59,13 @@
                     <td>{{ item.avg_ai_score if item.avg_ai_score is not none else "—" }}</td>
                     <td>{{ item.avg_trust_score if item.avg_trust_score is not none else "—" }}</td>
                     <td class="text-end">
-                        <form method="post" action="/admin/channels/{{ item.id }}/delete" class="d-inline"
-                              onsubmit="return confirm('Удалить этот канал? История заявок будет удалена безвозвратно.');">
+                        <form id="delete-channel-{{ item.id }}" method="post" action="/admin/channels/{{ item.id }}/delete" class="d-inline">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                            <button type="submit" class="btn btn-outline-danger btn-sm">Удалить</button>
+                            <button type="button" class="btn btn-outline-danger btn-sm channel-delete-trigger"
+                                    data-form-id="delete-channel-{{ item.id }}"
+                                    data-channel-title="{{ item.title }}">
+                                Удалить
+                            </button>
                         </form>
                     </td>
                 </tr>
@@ -78,4 +81,5 @@
         </div>
     </div>
 </div>
+{% include "dashboard/partials/channel_delete_modal.html" %}
 {% endblock %}
